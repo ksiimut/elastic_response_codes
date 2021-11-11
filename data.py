@@ -1,6 +1,7 @@
 import os
 import csv
 
+
 def readDAT(path):
 
     dat_name = path.split('/')[-1]
