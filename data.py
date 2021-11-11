@@ -1,19 +1,23 @@
 import os
 import csv
+import pandas as pd
+import numpy as np
+import user_comms
 
 
 def readDAT(path):
 
     dat_name = path.split('/')[-1]
     pieces = dat_name.split('.')[-2].split('_')
-    date = pieces[2]
+    date_of_testing = pieces[2]
     specimen_id = pieces[3]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
-    filename = specimen_id + '_' + date
+    filename = specimen_id + '_' + date_of_testing
 
     force = ['Force [kN]']                          # Compressive load, measured with load cell.
     disp_ax = ['Axial Displacement [mm]']           # Axial displacement, measured with built-in LVDT.
     disp_lat_l = ['Lateral Displacement (L) [mm]']  # Lateral displacement measured with left disp sensor.
     disp_lat_r = ['Lateral Displacement (R) [mm]']  # Lateral displacement measured with right disp sensor.
+    disp_lat_total = ['Lateral Displacement (Total) [mm]']  # Total lateral displacement.
 
     empty_line_counter = 0
     f = open(path, 'rt')
@@ -42,17 +46,40 @@ def readDAT(path):
     print('Lateral Displacement (L): ' + str(len(disp_lat_l) - 1))
     print('Lateral Displacement (R): ' + str(len(disp_lat_r) - 1))
 
-    return [filename, force, disp_ax, disp_lat_l, disp_lat_r]
+    if len(force) != len(disp_ax) != len(disp_lat_l) != disp_lat_r:
+        print('Faulty DAT file import! The number of data points does not match between different types of data.')
+        return None
+
+    else:
+        for i in range(len(disp_lat_l)):
+            disp_lat_total.append(round(disp_lat_l[i] + disp_lat_r[i], 5))
+
+        return [filename, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r]
+
+
+def specimen_info(path):
+    print(path)
+    df = pd.DataFrame(pd.read_excel(path, header=None))
+    a = df.values.tolist()
+    a[0].append('A [mm^2]')
+
+    for specimen in a[1:]:
+        loading_dir = specimen[0][0]
+        if loading_dir == 'X':
+            area = round(specimen[2] * specimen[3], 5)
+            specimen.append(area)
+        elif loading_dir == 'Y':
+            area = round(specimen[1] * specimen[3], 5)
+            specimen.append(area)
+    return a
 
 
 def decrease_resolution(data, decrease_x_times):
 
     low_res_data = [data[0]]
 
-    i = 1
-    while i < len(data):
+    for i in range(1, len(data)):
         low_res_data.append(average_data(data[i], decrease_x_times))
-        i += 1
 
     lengths = []
     for dataset in low_res_data:
@@ -103,5 +130,9 @@ disp_axial = ['Axial Displacement [mm]', 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,
 disp_lateral = ['Lateral Displacement [mm]',0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
 test_list = ['test.csv', force, disp_axial, disp_lateral]
 print(transpose_list(test_list, 'dir'))"""
-
+# filepath = user_comms.ask_src_path(0)
+excelpath = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
+            'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
+            'Specimen Dimensions Summary.xlsx'
+print(specimen_info(excelpath))
 
