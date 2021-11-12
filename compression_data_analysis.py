@@ -1,8 +1,6 @@
 import scipy.stats
-
 import data
 import plotting
-from scipy import stats
 
 
 def slice_series(series_data):
