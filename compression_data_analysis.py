@@ -13,19 +13,28 @@ def slice_series(series_data):
     disp_lat_l = series_data[4]
     disp_lat_r = series_data[5]
 
-    F_THRES = 2  # N - Force threshold to slice a series.
+    F_THRES = 1.5  # N - Force threshold to slice a series.
 
     test_start_indices = []
     test_end_indices = []
 
     part_of_test = False
-    for i in force:
+    in_a_row = 0
+    for i in force[1:]:
         if not part_of_test and i > F_THRES:
-            part_of_test = True
-            test_start_indices.append(force.index(i) - 10)
+            in_a_row += 1
+            if in_a_row > 4:
+                part_of_test = True
+                test_start_indices.append(force.index(i))
+                in_a_row = 0
+                # print('Start force [N]: ' + str(i))
         elif part_of_test and i < F_THRES:
-            part_of_test = False
-            test_end_indices.append(force.index(i) + 10)
+            in_a_row += 1
+            if in_a_row > 4:
+                part_of_test = False
+                test_end_indices.append(force.index(i))
+                in_a_row = 0
+                # print('End force [N]: ' + str(i))
 
     tests = []  # [[filename_1, [force_data_1], [disp_ax_data_1], [disp_lat_total_1], [disp_lat_left_1], [disp_lat_right_1]], [filename_2, ...]]
 
@@ -38,7 +47,7 @@ def slice_series(series_data):
         reps = len(test_start_indices)  # Number of repetitions made during one test.
         print('Slicing successful: ' + str(reps) + ' repetitions found in series.')
 
-        OFFSET = 10  # number of data points outside the test to include (on both sides).
+        OFFSET = 20  # number of data points outside the test to include (on both sides).
         for i in range(reps):
             test_start_indices[i] -= OFFSET
             test_end_indices[i] += OFFSET
@@ -50,6 +59,13 @@ def slice_series(series_data):
                           disp_lateral[test_start_indices[i]:test_end_indices[i]],
                           disp_lat_l[test_start_indices[i]:test_end_indices[i]],
                           disp_lat_r[test_start_indices[i]:test_end_indices[i]]])
+
+        for test in tests:
+            test[1].insert(0, 'Compressive Load [N]')
+            test[2].insert(0, 'Axial Displacement [mm]')
+            test[3].insert(0, 'Lateral Displacement (total) [mm]')
+            test[4].insert(0, 'Lateral Displacement (left) [mm]')
+            test[5].insert(0, 'Lateral Displacement (right) [mm]')
 
     return tests
 
@@ -175,12 +191,16 @@ def main():
     data_file_path = user_comms.ask_src_path(0)
 
     raw_data = data.readDAT(data_file_path)
-    lower_res_data = data.decrease_resolution(raw_data, 2)
+    lower_res_data = data.decrease_resolution(raw_data, 50)
     for list in lower_res_data:
         print(list[:10])
-    offset_data = data.offset_zero(lower_res_data[1], lower_res_data[2])
-    lower_res_data[2] = offset_data[1]
-    plotting.make_graph(lower_res_data, '')
+    # offset_data = data.offset_zero(lower_res_data[1], lower_res_data[2])
+    # lower_res_data[2] = offset_data[1]
+    slices = slice_series(lower_res_data)
+    # save_dir = user_comms.ask_save_dir()
+    for slice in slices:
+        # plotting.make_graph(slice[:4], save_dir)
+        plotting.plot_lat_disp(slice, '')
 
 
 specimen_info_excel_path = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \

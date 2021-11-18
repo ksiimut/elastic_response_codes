@@ -32,14 +32,14 @@ def make_graph(data_to_plot, save_dir):     # Data of one test
     plt.ylim([ymin, ymax])
     ax1.set_xticks(np.arange(ymin, ymax + 0.001, ystep))
 
-    x1max = max(x1_data)
-    x1min = min(x1_data)
+    x1max = round(max(x1_data), 1) + 0.1
+    x1min = round(min(x1_data), 1) - 0.1
     x1step = 0.1
 
     ax1.set_xlim([x1min, x1max])
     ax1.set_xticks(np.arange(x1min, x1max + 0.001, x1step))
 
-    if len(data_to_plot) == 6:
+    if len(data_to_plot) == 4:
         x2_data = data_to_plot[3][1:]  # Lateral displacement
         x2_label = data_to_plot[3][0]
 
@@ -50,8 +50,8 @@ def make_graph(data_to_plot, save_dir):     # Data of one test
         ax2.plot(x2_data, y_data, color=color)
         ax2.tick_params(axis='x', labelcolor=color)
 
-        x2max = max(x2_data)
-        x2min = min(x2_data)
+        x2max = round(max(x2_data), 2) + 0.01
+        x2min = round(min(x2_data), 2) - 0.01
         x2step = 0.01
 
         ax2.set_xlim([x2min, x2max])
@@ -73,7 +73,8 @@ def plot_lat_disp(data_to_plot, save_dir):
 
     force_data = data_to_plot[1][1:]
     force_label = data_to_plot[1][0]
-
+    disp_ax_data = data_to_plot[2][1:]
+    disp_ax_label = data_to_plot[2][0]
     disp_lat_total = data_to_plot[3][1:]
     disp_lat_label = 'Lateral Displacement [mm]'
     disp_lat_left = data_to_plot[4][1:]
@@ -84,24 +85,25 @@ def plot_lat_disp(data_to_plot, save_dir):
     totalcolor = 'tab:red'
     leftcolor = 'blue'
     rightcolor = 'green'
-    ax1.set_xlabel(force_label)
-    ax1.set_ylabel(disp_lat_label)
-    ax1.plot(force_data, disp_lat_total, color=totalcolor)
-    ax1.plot(force_data, disp_lat_left, color=leftcolor)
-    ax1.plot(force_data, disp_lat_right, color=rightcolor)
-    ax1.tick_params(axis='y')
+    ax1.set_xlabel(disp_lat_label)
+    ax1.set_ylabel(disp_ax_label)
+    ax1.plot(disp_ax_data, disp_lat_total, color=totalcolor)
+    # ax1.plot(disp_ax_data, disp_lat_left, color=leftcolor)
+    # ax1.plot(disp_ax_data, disp_lat_right, color=rightcolor)
+    ax1.tick_params(axis='x')
     ax1.set_title(filename)
+    # fig.legend()
 
-    xmax = max(force_data)  # Change values to customize
-    xmin = min(force_data)
-    xstep = 1
+    xmax = round(max(disp_ax_data), 1) + 0.1  # Change values to customize
+    xmin = round(min(disp_ax_data), 1) - 0.1
+    xstep = 0.1
 
     plt.xlim([xmin, xmax])
     ax1.set_xticks(np.arange(xmin, xmax + 0.001, xstep))
 
-    ymax = max(disp_lat_total)
-    ymin = min(disp_lat_total)
-    ystep = 0.1
+    ymax = round(max(disp_lat_total), 2) + 0.01
+    ymin = round(min(disp_lat_total), 2) - 0.01
+    ystep = 0.01
 
     ax1.set_ylim([ymin, ymax])
     ax1.set_yticks(np.arange(ymin, ymax + 0.001, ystep))

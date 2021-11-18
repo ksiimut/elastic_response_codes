@@ -10,9 +10,8 @@ def readDAT(path):
     dat_name = path.split('/')[-1]
     pieces = dat_name.split('_')
     date_of_testing = pieces[0]
-    specimen_id = pieces[1]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+    specimen_id = pieces[1].split('.')[0]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
     filename = specimen_id + '_' + date_of_testing
-    print('File name: ' + filename)
 
     force = ['Compressive Load [N]']                          # Compressive load, measured with load cell.
     disp_ax = ['Axial Displacement [mm]']           # Axial displacement, measured with built-in LVDT.
@@ -40,7 +39,7 @@ def readDAT(path):
         else:
             break
     f.close()
-    print(force[:100])
+
     print('Number of data points: ')
     print('Force: ' + str(len(force) - 1))  # -1 for the header row
     print('Axial Displacement: ' + str(len(disp_ax) - 1))
