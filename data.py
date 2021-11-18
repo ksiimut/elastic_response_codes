@@ -8,15 +8,16 @@ import user_comms
 def readDAT(path):
 
     dat_name = path.split('/')[-1]
-    pieces = dat_name.split('.')[-2].split('_')
-    date_of_testing = pieces[2]
-    specimen_id = pieces[3]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+    pieces = dat_name.split('_')
+    date_of_testing = pieces[0]
+    specimen_id = pieces[1]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
     filename = specimen_id + '_' + date_of_testing
+    print('File name: ' + filename)
 
-    force = ['Force [kN]']                          # Compressive load, measured with load cell.
+    force = ['Compressive Load [N]']                          # Compressive load, measured with load cell.
     disp_ax = ['Axial Displacement [mm]']           # Axial displacement, measured with built-in LVDT.
-    disp_lat_l = ['Lateral Displacement (L) [mm]']  # Lateral displacement measured with left disp sensor.
-    disp_lat_r = ['Lateral Displacement (R) [mm]']  # Lateral displacement measured with right disp sensor.
+    disp_lat_l = ['Lateral Displacement (L) [mm]']  # Lateral displacement measured with left disp sensor (Strain 7-1).
+    disp_lat_r = ['Lateral Displacement (R) [mm]']  # Lateral displacement measured with right disp sensor (Strain 7-3).
     disp_lat_total = ['Lateral Displacement (Total) [mm]']  # Total lateral displacement.
 
     empty_line_counter = 0
@@ -24,14 +25,14 @@ def readDAT(path):
     while True:
         if empty_line_counter < 3:
             try:
-                line = f.readline().strip('\n').split(' ')
+                line = f.readline().strip('\n').split('\t')
                 if len(line) < 4:
                     empty_line_counter += 1
                     continue
                 else:
                     empty_line_counter = 0
-                    disp_ax.append(round(float(line[0].replace(',', '.')), 5))
-                    force.append(round(float(line[1].replace(',', '.')), 5))
+                    force.append(-round(float(line[0].replace(',', '.')), 5))
+                    disp_ax.append(-round(float(line[1].replace(',', '.')), 5))
                     disp_lat_l.append(round(float(line[2].replace(',', '.')), 5))
                     disp_lat_r.append(round(float(line[3].replace(',', '.')), 5))
             except:
@@ -39,9 +40,9 @@ def readDAT(path):
         else:
             break
     f.close()
-
+    print(force[:100])
     print('Number of data points: ')
-    print('Force: ' + str(len(force) - 1))
+    print('Force: ' + str(len(force) - 1))  # -1 for the header row
     print('Axial Displacement: ' + str(len(disp_ax) - 1))
     print('Lateral Displacement (L): ' + str(len(disp_lat_l) - 1))
     print('Lateral Displacement (R): ' + str(len(disp_lat_r) - 1))
@@ -51,14 +52,14 @@ def readDAT(path):
         return None
 
     else:
-        for i in range(len(disp_lat_l)):
+        for i in range(1, len(disp_lat_l)):
             disp_lat_total.append(round(disp_lat_l[i] + disp_lat_r[i], 5))
 
         return [filename, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r]
 
 
 def specimen_info(path):
-    print(path)
+    # print(path)
     df = pd.DataFrame(pd.read_excel(path, header=None))
     a = df.values.tolist()
     a[0].append('A [mm^2]')
@@ -118,6 +119,26 @@ def transpose_list(data, save_dir):  # data: [filename, [dataset1], [dataset2], 
     return transposed_list
 
 
+def offset_zero(force_array, axial_disp_array):  # Input either sliced or non-sliced.
+    i = 1
+    F_THRES = 2  # N Load threshold for detecting start of test.
+    while i < len(force_array):
+        if force_array[i] > F_THRES:
+            i -= 10
+            if i < 0:
+                i = 1
+            break
+        else:
+            i += 1
+
+    disp_offset = axial_disp_array[i]
+    print('Displacement was offset by: ' + str(disp_offset))
+    for measurand in axial_disp_array[1:]:
+        measurand -= disp_offset
+
+    return [force_array, axial_disp_array]
+
+
 def write_to_csv(filename, save_dir, data_to_write):
     with open(os.path.join(save_dir, filename), mode='w+', newline='') as file:
         file_writer = csv.writer(file, delimiter=';')
@@ -129,10 +150,10 @@ def write_to_csv(filename, save_dir, data_to_write):
 disp_axial = ['Axial Displacement [mm]', 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 disp_lateral = ['Lateral Displacement [mm]',0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1]
 test_list = ['test.csv', force, disp_axial, disp_lateral]
-print(transpose_list(test_list, 'dir'))"""
-# filepath = user_comms.ask_src_path(0)
+print(transpose_list(test_list, 'dir'))
+filepath = user_comms.ask_src_path(0)
 excelpath = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
             'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
             'Specimen Dimensions Summary.xlsx'
-print(specimen_info(excelpath))
+print(specimen_info(excelpath))"""
 

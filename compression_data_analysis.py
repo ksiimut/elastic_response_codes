@@ -1,6 +1,7 @@
 import scipy.stats
 import data
 import plotting
+import user_comms
 
 
 def slice_series(series_data):
@@ -9,8 +10,10 @@ def slice_series(series_data):
     force = series_data[1]
     disp_axial = series_data[2]
     disp_lateral = series_data[3]
+    disp_lat_l = series_data[4]
+    disp_lat_r = series_data[5]
 
-    F_THRES = 0.01  # kN - Force threshold to slice a series.
+    F_THRES = 2  # N - Force threshold to slice a series.
 
     test_start_indices = []
     test_end_indices = []
@@ -19,10 +22,10 @@ def slice_series(series_data):
     for i in force:
         if not part_of_test and i > F_THRES:
             part_of_test = True
-            test_start_indices.append(force.index(i))
+            test_start_indices.append(force.index(i) - 10)
         elif part_of_test and i < F_THRES:
             part_of_test = False
-            test_end_indices.append(force.index(i))
+            test_end_indices.append(force.index(i) + 10)
 
     tests = []  # [[filename_1, [force_data_1], [disp_ax_data_1], [disp_lat_total_1], [disp_lat_left_1], [disp_lat_right_1]], [filename_2, ...]]
 
@@ -44,7 +47,9 @@ def slice_series(series_data):
             tests.append([filename + '_' + str(i + 1),
                           force[test_start_indices[i]:test_end_indices[i]],
                           disp_axial[test_start_indices[i]:test_end_indices[i]],
-                          disp_lateral[test_start_indices[i]:test_end_indices[i]]])
+                          disp_lateral[test_start_indices[i]:test_end_indices[i]],
+                          disp_lat_l[test_start_indices[i]:test_end_indices[i]],
+                          disp_lat_r[test_start_indices[i]:test_end_indices[i]]])
 
     return tests
 
@@ -165,9 +170,21 @@ def calculate_poisson(strain_axial, strain_lateral):
         return None
 
 
+def main():
+
+    data_file_path = user_comms.ask_src_path(0)
+
+    raw_data = data.readDAT(data_file_path)
+    lower_res_data = data.decrease_resolution(raw_data, 2)
+    for list in lower_res_data:
+        print(list[:10])
+    offset_data = data.offset_zero(lower_res_data[1], lower_res_data[2])
+    lower_res_data[2] = offset_data[1]
+    plotting.make_graph(lower_res_data, '')
 
 
 specimen_info_excel_path = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
-                           'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
-                           'Specimen Dimensions Summary.xlsx'
+                               'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
+                               'Specimen Dimensions Summary.xlsx'
 specimen_data = data.specimen_info(specimen_info_excel_path)
+main()
