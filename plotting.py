@@ -3,6 +3,7 @@ import data
 import user_comms
 import os
 import numpy as np
+import math
 
 
 def make_graph(data_to_plot, save_dir, retract_index):     # Data of one test
@@ -131,6 +132,100 @@ def plot_lat_disp(data_to_plot, save_dir, retract_index):
         save_path = os.path.join(save_dir, filename)
         # print(save_path)
         plt.savefig(save_path)
+
+
+def create_fig(title, x1, y1, retract_index, save_dir=None, x2=None, y2=None):
+
+    fig, ax1 = plt.subplots(figsize=(16, 9))
+
+    color = 'tab:red'
+    ax1.set_xlabel(x1[0])
+    ax1.set_ylabel(y1[0], color=color)
+    ax1.plot(x1[1:retract_index], y1[1:retract_index], color=color, label='Loading')
+    ax1.plot(x1[retract_index:], y1[retract_index:], '--', color=color, label='Unloading')
+    ax1.tick_params(axis='y', labelcolor=color)
+    ax1.set_title(title)
+
+    y1_info = calc_limits(y1[1:])
+
+    plt.ylim([y1_info[0], y1_info[1]])
+    ax1.set_yticks(y1_info[2])
+
+    x1_info = calc_limits(x1[1:])
+
+    ax1.set_xlim([x1_info[0], x1_info[1]])
+    ax1.set_xticks(x1_info[2])
+
+    if x2 is not None:
+        ax2 = ax1.twiny()
+
+        color = 'tab:blue'
+        ax2.set_xlabel(x2[0], color=color)
+        ax2.plot(x2[1:retract_index], y1[1:retract_index], color=color)
+        ax2.plot(x2[retract_index:], y1[retract_index:], '--', color=color)
+        ax2.tick_params(axis='x', labelcolor=color)
+
+        x2_info = calc_limits(x2[1:])
+
+        ax2.set_xlim([x2_info[0], x2_info[1]])
+        ax2.set_xticks(x2_info[2])
+
+    if y2 is not None:
+        ax3 = ax1.twinx()
+
+        color = 'tab:green'
+        ax3.set_xlabel(y2[0], color=color)
+        ax3.plot(x1[1:retract_index], y2[1:retract_index], color=color)
+        ax3.plot(x1[retract_index:], y2[retract_index:], '--', color=color)
+        ax3.tick_params(axis='y', labelcolor=color)
+
+        y2_info = calc_limits(y2[1:])
+
+        ax3.set_ylim([y2_info[0], y2_info[1]])
+        ax3.set_yticks(y2_info[2])
+
+    # fig.legend(loc='upper left')
+    fig.tight_layout()  # otherwise the right y-label is slightly clipped
+
+    if save_dir is None:
+        plt.show()
+    else:
+        save_path = os.path.join(save_dir, title)
+        # print(save_path)
+        plt.savefig(save_path)
+
+
+def calc_limits(data_set):
+    digit = highest_digit(max([abs(max(data_set)), abs(min(data_set))])) - 1
+    # print('Max: ' + str(max(data_set)) + '; Min: ' + str(min(data_set)))
+    # print('Digit: ' + str(digit))
+
+    lim_max = round_up(max(data_set), -digit)
+    lim_min = round_down(min(data_set), -digit)
+    tick_step = round((lim_max - lim_min) / 10, -digit)
+    # print('Max: ' + str(lim_max) + '; Min: ' + str(lim_min) + '; Step: ' + str(tick_step))
+    tick_array = np.arange(lim_min, lim_max, tick_step)
+
+    return [lim_min, lim_max, tick_array]
+
+
+def highest_digit(num):
+    # print('Input: ' + str(num) + '; Output: ' + str(math.floor(math.log(num, 10))))
+    return math.floor(math.log(num, 10))
+
+
+def round_down(num, digits):
+    multiplier = 10 ** digits
+    inter = math.floor(num * multiplier)
+    result = inter / multiplier
+    return result
+
+
+def round_up(num, digits):
+    multiplier = 10 ** digits
+    inter = math.ceil(num * multiplier)
+    result = inter / multiplier
+    return result
 
 
 """force = ['Force [kN]', 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]

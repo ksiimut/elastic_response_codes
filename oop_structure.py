@@ -2,6 +2,7 @@ import scipy
 from scipy import stats
 import user_comms
 import data
+import plotting
 
 
 class TestSeries:
@@ -132,6 +133,7 @@ class TestSeries:
                 if lengths[i] != lengths[j]:
                     equal = False
         if equal:
+            print('Resolution decreased by ' + str(decrease_x_times) + ' times.')
             pass
         else:
             print('Error! Datasets with lowered resolution do not have the same length!')
@@ -185,7 +187,7 @@ class TestSeries:
             tests = []  # Repetition class instances
 
             for i in range(reps):
-                slicename = self.filename + '_Rep.' + str(i + 1)
+                slicename = self.filename + '_Rep_' + str(i + 1)
                 force_slice = self.force[test_start_indices[i]:test_end_indices[i]]
                 disp_ax_slice = self.disp_ax[test_start_indices[i]:test_end_indices[i]]
                 disp_lat_total_slice = self.disp_lat_total[test_start_indices[i]:test_end_indices[i]]
@@ -229,7 +231,7 @@ class TestSeries:
                     break
 
         disp_offset = self.disp_ax[i]
-        print('Displacement of the whole series was offset by: ' + str(disp_offset))
+        print('Displacement of the series was offset by: ' + str(disp_offset) + ' mm.')
         disp_ax_offset = [self.disp_ax[0]]
         for measurand in self.disp_ax[1:]:
             disp_ax_offset.append(round(measurand - disp_offset, 5))
@@ -241,6 +243,7 @@ class Repetition(TestSeries):
 
     def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral):
 
+        self.title = title
         self.specimen_id = title[:3]
         self.test_date = title.split('_')[1]
         self.lat_dir = title[3]
@@ -272,31 +275,55 @@ class Repetition(TestSeries):
                 if cont_drop >= DROP_THRES:
                     return i - DROP_THRES
 
+    def offset_rep_zero(self):
+        F_THRES = 2  # N Load threshold for detecting start of test.
+        i = 1
+        count = 0
+        for load in self.force[1:]:
+            COUNT_THRES = 5
+            # print('Count: ' + str(count) + '. Force: ' + str(load))
+            if load > F_THRES:
+                count += 1
+                if count >= COUNT_THRES:
+                    i = self.force.index(load)
+                    i -= COUNT_THRES
+                    if i < 1:
+                        i = 1
+                    break
+
+        disp_offset = self.disp_ax[i]
+        print('Displacement of repetition ' + self.repetition + ' was offset by: ' + str(disp_offset) + ' mm.')
+        disp_ax_offset = [self.disp_ax[0]]
+        for measurand in self.disp_ax[1:]:
+            disp_ax_offset.append(round(measurand - disp_offset, 5))
+
+        self.disp_ax = disp_ax_offset
+
     def calculate_axial_strain(self):
 
         strains = ['Compressive Strain [mm/mm]']
         for i in self.disp_ax[1:]:
-            strains.append((i / self.l0_axial))
+            strains.append(round(i / self.l0_axial, 8))
         return strains
 
     def calculate_lateral_strain(self):
 
         strains = ['Lateral Strain [mm/mm]']
         for i in self.disp_lat_total[1:]:
-            strains.append((i / self.l0_lateral))
+            strains.append(round(i / self.l0_lateral, 8))
         return strains
 
     def calculate_stress(self):
 
         stresses = ['Compressive Stress [MPa]']
         for i in self.force[1:]:
-            stresses.append(i / self.area)
+            stresses.append(round(i / self.area, 5))
         return stresses
 
     def calculate_modulus(self):
         ######################
-        min_strain = 0.0025
-        max_strain = 0.005
+        min_strain = 0.004
+        max_strain = 0.01
         ######################
         i_min = 1  # not 0 to exclude the data header.
         i_max = 1
@@ -327,8 +354,8 @@ class Repetition(TestSeries):
 
     def calculate_poisson(self):
         ######################
-        min_strain = 0.0025  # min and max AXIAL strains to use for calculations.
-        max_strain = 0.005
+        min_strain = 0.004  # min and max AXIAL strains to use for calculations.
+        max_strain = 0.01
         ######################
         i_min = 1
         i_max = 1
@@ -373,21 +400,29 @@ class Repetition(TestSeries):
         print(ary)
 
 
-specimen_info_excel_path_LT = 'C:\\Users\\kaare\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
-                               'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
-                               'Specimen Dimensions Summary.xlsx'
-specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
-path = user_comms.ask_src_path(0)
-a = TestSeries(path, specimen_sizes)
-a.decrease_resolution(20)
-# print(a.disp_ax[:20])
-a.offset_series_zero()
-slices = a.slice_series()
-for slice in slices:
-    print(slice.get_rep_summary())
+if __name__ == '__main__':
+    specimen_info_excel_path_LT = 'C:\\Users\\kaare\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
+                                  'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
+                                  'Specimen Dimensions Summary.xlsx'
+    specimen_info_excel_path_PC = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
+                                  'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
+                                  'Specimen Dimensions Summary.xlsx'
+    specimen_sizes = data.specimen_info(specimen_info_excel_path_PC)
 
-# print(a.force[:20])
-# print('Resolution decreased by 20 times.')
-# a.slice_series()
+    path = user_comms.ask_src_path(0)           # Ask user for file path
+    # save_dir = user_comms.ask_save_dir()
+    a = TestSeries(path, specimen_sizes)        # Create instance of TestSeries
+    a.decrease_resolution(10)                   # Average data
+    # print(a.disp_ax[:20])
+    a.offset_series_zero()                      # Offset series zero
+    slices = a.slice_series()                   # Slice series to individual repetitions
+    for slice in slices:
+        print(slice.get_rep_summary())
+        plotting.create_fig(slice.title,
+                            slice.axial_strains,
+                            slice.stresses,
+                            slice.tipping_point,
+                            x2=slice.lateral_strains)
+
 
 
