@@ -36,6 +36,8 @@ def slice_series(series_data):
                 in_a_row = 0
                 # print('End force [N]: ' + str(i))
 
+    print(test_start_indices)
+    print(test_end_indices)
     tests = []  # [[filename_1, [force_data_1], [disp_ax_data_1], [disp_lat_total_1], [disp_lat_left_1], [disp_lat_right_1]], [filename_2, ...]]
 
     if len(test_start_indices) != len(test_end_indices):
@@ -191,20 +193,24 @@ def main():
     data_file_path = user_comms.ask_src_path(0)
 
     raw_data = data.readDAT(data_file_path)
-    lower_res_data = data.decrease_resolution(raw_data, 50)
+    lower_res_data = data.decrease_resolution(raw_data, 1)
     for list in lower_res_data:
         print(list[:10])
-    # offset_data = data.offset_zero(lower_res_data[1], lower_res_data[2])
-    # lower_res_data[2] = offset_data[1]
+    offset_data = data.offset_zero(lower_res_data[1], lower_res_data[2])
+    lower_res_data[2] = offset_data[1]
     slices = slice_series(lower_res_data)
     # save_dir = user_comms.ask_save_dir()
     for slice in slices:
+        i = data.find_retract(slice)
         # plotting.make_graph(slice[:4], save_dir)
-        plotting.plot_lat_disp(slice, '')
+        plotting.plot_lat_disp(slice, '', i)
 
 
-specimen_info_excel_path = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
+specimen_info_excel_path_PC = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
                                'Specimen Dimensions Summary.xlsx'
-specimen_data = data.specimen_info(specimen_info_excel_path)
+specimen_info_excel_path_LT = 'C:\\Users\\kaare\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
+                               'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
+                               'Specimen Dimensions Summary.xlsx'
+specimen_data = data.specimen_info(specimen_info_excel_path_LT)
 main()

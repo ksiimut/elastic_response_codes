@@ -138,6 +138,22 @@ def offset_zero(force_array, axial_disp_array):  # Input either sliced or non-sl
     return [force_array, axial_disp_array]
 
 
+def find_retract(data):  # Returns index, where unloading starts.
+
+    force = data[1]
+
+    force_change = 0
+    cont_drop = 0  # How many points in a row have been dropping.
+    DROP_THRES = 10  # How many points in a row have to drop.
+    LOAD_THRES = -10  # Change in force [N] that will be counted as a drop.
+    for i in range(2, len(force[2:])):
+        force_change = force[i] - force[i - 1]
+        if force_change < LOAD_THRES:
+            cont_drop += 1
+            if cont_drop == DROP_THRES:
+                return i - DROP_THRES
+
+
 def write_to_csv(filename, save_dir, data_to_write):
     with open(os.path.join(save_dir, filename), mode='w+', newline='') as file:
         file_writer = csv.writer(file, delimiter=';')

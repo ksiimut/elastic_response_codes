@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 
-def make_graph(data_to_plot, save_dir):     # Data of one test
+def make_graph(data_to_plot, save_dir, retract_index):     # Data of one test
     # [filename, [x_data_points], [y1_data_points], [y2_data_points(optional)]]
 
     filename = data_to_plot[0]
@@ -67,7 +67,7 @@ def make_graph(data_to_plot, save_dir):     # Data of one test
         plt.savefig(save_path)
 
 
-def plot_lat_disp(data_to_plot, save_dir):
+def plot_lat_disp(data_to_plot, save_dir, retract_index):
 
     filename = data_to_plot[0]
 
@@ -86,27 +86,44 @@ def plot_lat_disp(data_to_plot, save_dir):
     leftcolor = 'blue'
     rightcolor = 'green'
     ax1.set_xlabel(disp_lat_label)
-    ax1.set_ylabel(disp_ax_label)
-    ax1.plot(disp_ax_data, disp_lat_total, color=totalcolor)
+    ax1.set_ylabel(disp_ax_label, color=totalcolor)
+    ax1.plot(disp_ax_data[:retract_index], disp_lat_total[:retract_index], color=totalcolor)
+    ax1.plot(disp_ax_data[retract_index:-1], disp_lat_total[retract_index:-1], '--', color=totalcolor)
     # ax1.plot(disp_ax_data, disp_lat_left, color=leftcolor)
     # ax1.plot(disp_ax_data, disp_lat_right, color=rightcolor)
-    ax1.tick_params(axis='x')
+    ax1.tick_params(axis='y', labelcolor=totalcolor)
     ax1.set_title(filename)
     # fig.legend()
 
-    xmax = round(max(disp_ax_data), 1) + 0.1  # Change values to customize
-    xmin = round(min(disp_ax_data), 1) - 0.1
+    ax2 = ax1.twinx()  # Axis for force displacement
+
+    color = 'tab:blue'
+    ax2.set_ylabel(force_label, color=color)
+    ax2.plot(disp_ax_data[:retract_index], force_data[:retract_index], color=color)
+    ax2.plot(disp_ax_data[retract_index:-1], force_data[retract_index:-1], '--', color=color)
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    xmax = round(max(disp_ax_data) + 0.05, 1)  # Change values to customize
+    xmin = round(min(disp_ax_data) - 0.05, 1)
     xstep = 0.1
 
     plt.xlim([xmin, xmax])
     ax1.set_xticks(np.arange(xmin, xmax + 0.001, xstep))
 
     ymax = round(max(disp_lat_total), 2) + 0.01
-    ymin = round(min(disp_lat_total), 2) - 0.01
+    ymin = round(min(disp_lat_total), 2) - 0.005
     ystep = 0.01
 
     ax1.set_ylim([ymin, ymax])
-    ax1.set_yticks(np.arange(ymin, ymax + 0.001, ystep))
+    ax1.set_yticks(np.arange(ymin + 0.005, ymax + 0.001, ystep))
+
+    y2max = round(max(force_data), -3) + 500
+    # y2min = 0  # round(min(force_data), 2) - 100
+    y2min = round((ymin / ymax) * y2max, -3)
+    y2step = 1000  # round(abs(y2max - y2min) / 10, -3)
+
+    ax2.set_ylim([y2min, y2max])
+    ax2.set_yticks(np.arange(y2min, y2max + 0.001, y2step))
 
     if save_dir == '':
         plt.show()
