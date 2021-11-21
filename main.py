@@ -3,8 +3,10 @@ from scipy import stats
 import user_comms
 import data
 import plotting
+from DestructiveTest import DestructiveTest
+from TestSeries import TestSeries
 
-
+"""
 class TestSeries:
 
     def __init__(self, filepath, specimen_info):
@@ -68,8 +70,8 @@ class TestSeries:
         print('Lateral Displacement (R): ' + str(len(disp_lat_r) - 1))
 
         if len(force) != len(disp_ax) or len(force) != len(disp_lat_l) or \
-           len(force) != len(disp_lat_r) or len(disp_ax) != len(disp_lat_l) or \
-           len(disp_ax) != len(disp_lat_r) or len(disp_lat_l) != len(disp_lat_r):
+                len(force) != len(disp_lat_r) or len(disp_ax) != len(disp_lat_l) or \
+                len(disp_ax) != len(disp_lat_r) or len(disp_lat_l) != len(disp_lat_r):
             print('Faulty DAT file import! The number of data points does not match between different types of data.')
             print('Number of data points: ')
             print('Force: ' + str(len(force) - 1))  # -1 for the header row
@@ -399,7 +401,7 @@ class Repetition(TestSeries):
         ary = [self.specimen_id, self.test_date, self.repetition, self.lat_dir, self.area, self.tipping_point]
         print(ary)
 
-
+"""
 if __name__ == '__main__':
     specimen_info_excel_path_LT = 'C:\\Users\\kaare\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                   'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
@@ -421,8 +423,16 @@ if __name__ == '__main__':
         plotting.create_fig(slice.title,
                             slice.axial_strains,
                             slice.stresses,
-                            slice.tipping_point,
+                            retract_index=slice.tipping_point,
                             x2=slice.lateral_strains)
+
+    """a = DestructiveTest(path, 10, specimen_sizes)
+    print(a.get_rep_summary())
+    plotting.create_fig(a.filename,
+                        a.strains,
+                        a.stresses)
+                        #line=[a.slope, a.intercept])"""
+
 
 
 

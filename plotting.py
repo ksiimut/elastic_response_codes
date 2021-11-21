@@ -134,15 +134,18 @@ def plot_lat_disp(data_to_plot, save_dir, retract_index):
         plt.savefig(save_path)
 
 
-def create_fig(title, x1, y1, retract_index, save_dir=None, x2=None, y2=None):
+def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=None, line=None):
 
     fig, ax1 = plt.subplots(figsize=(16, 9))
 
     color = 'tab:red'
     ax1.set_xlabel(x1[0])
     ax1.set_ylabel(y1[0], color=color)
-    ax1.plot(x1[1:retract_index], y1[1:retract_index], color=color, label='Loading')
-    ax1.plot(x1[retract_index:], y1[retract_index:], '--', color=color, label='Unloading')
+    if retract_index is not None:
+        ax1.plot(x1[1:retract_index], y1[1:retract_index], color=color, label='Loading')
+        ax1.plot(x1[retract_index:], y1[retract_index:], '--', color=color, label='Unloading')
+    else:
+        ax1.plot(x1[1:], y1[1:], color=color)
     ax1.tick_params(axis='y', labelcolor=color)
     ax1.set_title(title)
 
@@ -161,8 +164,11 @@ def create_fig(title, x1, y1, retract_index, save_dir=None, x2=None, y2=None):
 
         color = 'tab:blue'
         ax2.set_xlabel(x2[0], color=color)
-        ax2.plot(x2[1:retract_index], y1[1:retract_index], color=color)
-        ax2.plot(x2[retract_index:], y1[retract_index:], '--', color=color)
+        if retract_index is not None:
+            ax2.plot(x2[1:retract_index], y1[1:retract_index], color=color)
+            ax2.plot(x2[retract_index:], y1[retract_index:], '--', color=color)
+        else:
+            ax2.plot(x2[1:], y1[1:], color=color)
         ax2.tick_params(axis='x', labelcolor=color)
 
         x2_info = calc_limits(x2[1:])
@@ -175,14 +181,29 @@ def create_fig(title, x1, y1, retract_index, save_dir=None, x2=None, y2=None):
 
         color = 'tab:green'
         ax3.set_xlabel(y2[0], color=color)
-        ax3.plot(x1[1:retract_index], y2[1:retract_index], color=color)
-        ax3.plot(x1[retract_index:], y2[retract_index:], '--', color=color)
+        if retract_index is not None:
+            ax3.plot(x1[1:retract_index], y2[1:retract_index], color=color)
+            ax3.plot(x1[retract_index:], y2[retract_index:], '--', color=color)
+        else:
+            ax3.plot(x1[1:], y2[1:], color=color)
         ax3.tick_params(axis='y', labelcolor=color)
 
         y2_info = calc_limits(y2[1:])
 
         ax3.set_ylim([y2_info[0], y2_info[1]])
         ax3.set_yticks(y2_info[2])
+
+    if line is not None:
+        slope = line[0]
+        intercept = line[1]
+
+        y_line = [y1_info[0], y1_info[1]]
+        x_line = []
+
+        for i in y_line:
+            x_line.append((i - intercept) / slope)
+
+        ax1.plot(x_line, y_line, color='b')
 
     # fig.legend(loc='upper left')
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
