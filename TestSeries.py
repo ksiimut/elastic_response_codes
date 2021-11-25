@@ -248,7 +248,7 @@ class Repetition(TestSeries):
         self.specimen_id = title[:3]
         self.test_date = title.split('_')[1]
         self.lat_dir = title[3]
-        self.repetition = title.split('_')[2]
+        self.repetition = title.split('_')[-1]
         self.force = force
         self.disp_ax = disp_ax
         self.disp_lat_total = disp_lat_total
@@ -388,9 +388,9 @@ class Repetition(TestSeries):
             return None
 
     def get_rep_summary(self):
-        headers = ['Specimen ID', 'Date of Testing', 'Repetition',
-                   'Compressive Modulus [GPa]', 'RSQ',
-                   'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
+        # headers = ['Specimen ID', 'Date of Testing', 'Repetition',
+        #            'Compressive Modulus [GPa]', 'RSQ',
+        #            'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
         summary = [self.specimen_id, self.test_date, self.repetition,
                    self.comp_modulus[0], self.comp_modulus[1],
                    self.lat_dir, self.poisson[0], self.poisson[1]]

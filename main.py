@@ -410,24 +410,26 @@ if __name__ == '__main__':
                                   'Specimen Dimensions Summary.xlsx'
     specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
 
-    # path = user_comms.ask_src_path(0)           # Ask user for file path
-    path = user_comms.ask_src_path(1)           # Ask user for folder path
+    path = user_comms.ask_src_path(0)           # Ask user for file path
+    # path = user_comms.ask_src_path(1)           # Ask user for folder path
     save_dir = user_comms.ask_save_dir()
-    """a = TestSeries(path, specimen_sizes)        # Create instance of TestSeries
+    a = TestSeries(path, specimen_sizes)        # Create instance of TestSeries
     a.decrease_resolution(10)                   # Average data
     # print(a.disp_ax[:20])
     a.offset_series_zero()                      # Offset series zero
     slices = a.slice_series()                   # Slice series to individual repetitions
-    for slice in slices:
-        print(slice.get_rep_summary())
-        plotting.create_fig(slice.title,
-                            slice.axial_strains,
-                            slice.stresses,
-                            retract_index=slice.tipping_point,
-                            x2=slice.lateral_strains)
+    summary = [['Specimen ID', 'Date of Testing', 'Repetition', 'Compressive Modulus [GPa]', 'RSQ', 'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
+    for rep in slices:
+        summary.append(rep.get_rep_summary())
+        plotting.create_fig(rep.title,
+                            rep.axial_strains,
+                            rep.stresses,
+                            retract_index=rep.tipping_point,
+                            x2=rep.lateral_strains,
+                            save_dir=save_dir)
+    data.write_to_csv(a.filename + '.csv', save_dir, summary)
 
-    """
-    summary = [['Specimen ID', 'Date of Testing', 'Yield Stress 0.02% [MPa]', 'Compressive Modulus [GPa]', 'RSQ']]
+    """summary = [['Specimen ID', 'Date of Testing', 'Yield Stress 0.02% [MPa]', 'Compressive Modulus [GPa]', 'RSQ']]
     for f in os.listdir(path):
         a = DestructiveTest(os.path.join(path, f).replace('\\', '/'), 10, specimen_sizes)
         summary.append(a.get_rep_summary())
@@ -446,7 +448,7 @@ if __name__ == '__main__':
                                 a.stresses,
                                 line=[a.slope, a.intercept],
                                 save_dir=save_dir)
-    data.write_to_csv('20211118_destructive.csv', save_dir, summary)
+    data.write_to_csv('20211118_destructive.csv', save_dir, summary)"""
 
     """a = DestructiveTest(path, 10, specimen_sizes)
     print(a.get_rep_summary())
