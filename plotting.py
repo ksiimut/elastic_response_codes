@@ -81,7 +81,7 @@ def plot_lat_disp(data_to_plot, save_dir, retract_index):
     disp_lat_left = data_to_plot[4][1:]
     disp_lat_right = data_to_plot[5][1:]
 
-    fig, ax1 = plt.subplots(figsize=(16, 9))
+    fig, ax1 = plt.subplots(figsize=(15, 8))
 
     totalcolor = 'tab:red'
     leftcolor = 'blue'

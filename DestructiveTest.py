@@ -24,14 +24,19 @@ class DestructiveTest:
         self.area = size[0]
         self.l0 = size[1]
 
+        MIN_STRAIN = 0.007
+        MAX_STRAIN = 0.012
+        self.strain_offset = 0.0002
+
         self.tipping_point = self.find_retract()
         self.strains = self.calculate_strain()
         self.stresses = self.calculate_stress()
-        self.comp_modulus = self.calculate_modulus()  # [modulus, rsq]
-        # sigma_y_data = self.calculate_sigma_y()
-        # self.sigma_y = sigma_y_data[0]
-        # self.slope = sigma_y_data[1]
-        # self.intercept = sigma_y_data[2]
+        self.comp_modulus = self.calculate_modulus(MIN_STRAIN, MAX_STRAIN)  # [modulus, rsq]
+
+        sigma_y_data = self.calculate_sigma_y(MIN_STRAIN, MAX_STRAIN, self.strain_offset)
+        self.sigma_y = sigma_y_data[0]
+        self.slope = sigma_y_data[1]
+        self.intercept = sigma_y_data[2]
 
     def read_dat(self):
 
@@ -63,15 +68,15 @@ class DestructiveTest:
                 break
         f.close()
 
-        print('Number of data points: ')
-        print('Force: ' + str(len(force) - 1))  # -1 for the header row
-        print('Axial Displacement: ' + str(len(disp_ax) - 1))
+        print(str(specimen_id) + ': Number of data points: ')
+        print(str(specimen_id) + ': Force: ' + str(len(force) - 1))  # -1 for the header row
+        print(str(specimen_id) + ': Axial Displacement: ' + str(len(disp_ax) - 1))
 
         if len(force) != len(disp_ax):
-            print('Faulty DAT file import! The number of data points does not match between different types of data.')
-            print('Number of data points: ')
-            print('Force: ' + str(len(force) - 1))  # -1 for the header row
-            print('Axial Displacement: ' + str(len(disp_ax) - 1))
+            print(str(specimen_id) + ': Faulty DAT file import! The number of data points does not match between different types of data.')
+            print(str(specimen_id) + ': Number of data points: ')
+            print(str(specimen_id) + ': Force: ' + str(len(force) - 1))  # -1 for the header row
+            print(str(specimen_id) + ': Axial Displacement: ' + str(len(disp_ax) - 1))
             return None
 
         else:
@@ -88,10 +93,10 @@ class DestructiveTest:
         self.disp_ax = data.average_data(self.disp_ax, decrease_x_times)
 
         if len(self.force) == len(self.disp_ax):
-            print('Resolution decreased by ' + str(decrease_x_times) + ' times.')
+            print(str(self.specimen_id) + ': Resolution decreased by ' + str(decrease_x_times) + ' times.')
             pass
         else:
-            print('Error! Datasets with lowered resolution do not have the same length!')
+            print(str(self.specimen_id) + ': Error! Datasets with lowered resolution do not have the same length!')
 
     def find_specimen_size(self, specimen_data):
 
@@ -101,14 +106,14 @@ class DestructiveTest:
             if self.specimen_id[:3] == specimen[0]:
                 result[0] = specimen[4]
                 loading_dir = self.specimen_id[0]
-                print('Loading direction: ' + loading_dir)
+                print(str(self.specimen_id) + ': Loading direction: ' + loading_dir)
 
                 if loading_dir == 'X':
                     result[1] = specimen[1]
                 elif loading_dir == 'Y':
                     result[1] = specimen[2]
                 else:
-                    print('Loading direction not found!')
+                    print(str(self.specimen_id) + ': Loading direction not found!')
                     result[1] = None
 
         return result
@@ -131,7 +136,7 @@ class DestructiveTest:
                     break
 
         disp_offset = self.disp_ax[i]
-        print('Displacement of the series was offset by: ' + str(disp_offset) + ' mm.')
+        print(str(self.specimen_id) + ': Displacement of the series was offset by ' + str(disp_offset) + ' mm.')
         disp_ax_offset = [self.disp_ax[0]]
         for measurand in self.disp_ax[1:]:
             disp_ax_offset.append(round(measurand - disp_offset, 5))
@@ -143,7 +148,7 @@ class DestructiveTest:
         F_THRES = 1  # N - Force threshold to slice a series.
 
         test_start_index = 0
-        test_end_index = -1
+        test_end_index = len(self.force)
 
         part_of_test = False
         count = 0  # How many points in a row are over the threshold.
@@ -158,6 +163,8 @@ class DestructiveTest:
                     part_of_test = True
                     test_start_index = self.force.index(i) - COUNT_THRES - OFFSET
                     count = 0
+                    if test_start_index < 1:
+                        test_start_index = 1
                     # print('Start force [N]: ' + str(i))
             elif not part_of_test and i < F_THRES:
                 count = 0
@@ -168,7 +175,9 @@ class DestructiveTest:
                     part_of_test = False
                     test_end_index = self.force.index(i) + COUNT_THRES + OFFSET
                     count = 0
-                    # print('End force [N]: ' + str(i))
+                    if test_end_index >= len(self.force):
+                        test_end_index = len(self.force) - 1
+                    print('End force [N]: ' + str(i))
             elif part_of_test and i > F_THRES:
                 count = 0
 
@@ -206,11 +215,8 @@ class DestructiveTest:
             stresses.append(round(i / self.area, 5))
         return stresses
 
-    def calculate_modulus(self):
-        ######################
-        min_strain = 0.005
-        max_strain = 0.01
-        ######################
+    def calculate_modulus(self, min_strain, max_strain):
+
         i_min = 1  # not 0 to exclude the data header.
         i_max = 1
         if len(self.stresses) == len(self.strains):
@@ -227,25 +233,22 @@ class DestructiveTest:
             result = scipy.stats.linregress(self.strains[i_min:i_max], self.stresses[i_min:i_max])
             modulus = round(result.slope / 1000, 3)  # GPa
             rsq = round(result.rvalue**2, 5)
-            # print('Young\'s modulus: ' + str(modulus) + ' GPa')
+            # print(str(self.specimen_id) + ': Compression modulus: ' + str(modulus) + ' GPa')
             # print('R^2: ' + str(rsq))
 
             return [modulus, rsq]
 
         else:
-            print('Error in Compression Modulus calculation.')
-            print('Number of stress data points: ' + str(len(self.stresses)))
-            print('Number of strain data points: ' + str(len(self.strains)))
+            print(str(self.specimen_id) + ': Error in Compression Modulus calculation.')
+            print(str(self.specimen_id) + ': Number of stress data points: ' + str(len(self.stresses)))
+            print(str(self.specimen_id) + ': Number of strain data points: ' + str(len(self.strains)))
             return None
 
-    def calculate_sigma_y(self):
-        ######################
-        min_strain = 0.005
-        max_strain = 0.01
-        ######################
-        strain_offset = 0.0002  # 0.02% method
+    def calculate_sigma_y(self, min_strain, max_strain, strain_offset):
+
         i_min = 1  # not 0 to exclude the data header.
         i_max = 1
+        res = [0, 1, 0]
         if len(self.stresses) == len(self.strains):
             for i in range(1, len(self.strains)):
                 if self.strains[i] > min_strain:
@@ -260,14 +263,14 @@ class DestructiveTest:
             result = scipy.stats.linregress(self.strains[i_min:i_max], self.stresses[i_min:i_max])
             slope = result.slope  # MPa
             y_intercept = result.intercept  # MPa
-            print('Compression Modulus: ' + str(round(slope, 5)) + ' MPa; Intercept: ' + str(round(y_intercept, 5)) + ' MPa')
+            # print('Compression Modulus: ' + str(round(slope, 5)) + ' MPa; Intercept: ' + str(round(y_intercept, 5)) + ' MPa')
 
             x_old = max_strain
             y_old = slope * x_old + y_intercept
             x_new = x_old + strain_offset
 
             y_intercept_new = calc_intercepts([x_new, y_old], slope)[1]
-            print('y_ic_new: ' + str(y_intercept_new))
+            # print('y_ic_new: ' + str(y_intercept_new))
             # new line: y = slope * x + y_intercept_new
 
             for i in range(i_max, len(self.strains) - 1):
@@ -275,25 +278,27 @@ class DestructiveTest:
                 strain_1 = self.strains[i + 1]
                 stress_0 = self.stresses[i]
                 stress_1 = self.stresses[i + 1]
-                print('Stress range: ' + str(stress_0) + ' - ' + str(stress_1))
+                # print('Stress range: ' + str(stress_0) + ' - ' + str(stress_1))
                 pred_stress = slope * strain_0 + y_intercept_new
-                print('Predicted Stress: ' + str(pred_stress))
+                # print('Predicted Stress: ' + str(pred_stress))
                 if stress_0 < pred_stress <= stress_1:
                     k_data = (stress_1 - stress_0) / (strain_1 - strain_0)
                     y_ic_data = calc_intercepts([strain_0, stress_0], k_data)[1]
 
                     yield_strain = (y_ic_data - y_intercept_new) / (slope - k_data)
                     yield_stress = round(slope * yield_strain + y_intercept_new, 3)
-                    return [yield_stress, slope, y_intercept_new]
+                    res = [yield_stress, slope, y_intercept_new]
+                    break
+        return res
 
     def get_rep_summary(self):
-        headers = ['Specimen ID', 'Date of Testing', 'Yield Stress 0.2% [MPa]',
-                   'Compressive Modulus [GPa]', 'RSQ']
-        # summary = [[self.specimen_id, self.test_date, self.sigma_y,
-        #            self.comp_modulus[0], self.comp_modulus[1]]]
-        summary = [[self.specimen_id, self.test_date,
-                     self.comp_modulus[0], self.comp_modulus[1]]]
-        summary.insert(0, headers)
+        # headers = ['Specimen ID', 'Date of Testing', 'Yield Stress 0.2% [MPa]',
+        #            'Compressive Modulus [GPa]', 'RSQ']
+        summary = [self.specimen_id, self.test_date, self.sigma_y,
+                    self.comp_modulus[0], self.comp_modulus[1]]
+        # summary = [[self.specimen_id, self.test_date,
+        #              self.comp_modulus[0], self.comp_modulus[1]]]
+        # summary.insert(0, headers)
         return summary
 
 
