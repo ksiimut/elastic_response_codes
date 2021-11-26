@@ -449,7 +449,7 @@ class Repetition(TestSeries):
         #            'Compressive Modulus [MPa]', 'RSQ',
         #            'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
         summary = [self.specimen_id, self.test_date, self.repetition, self.rep_offset,
-                   self.comp_modulus[0], self.comp_modulus[1],
+                   self.comp_modulus[0], self.comp_modulus[2],
                    self.lat_dir, self.poisson[0], self.poisson[1]]
         return summary
 
