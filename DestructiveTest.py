@@ -148,7 +148,7 @@ class DestructiveTest:
         F_THRES = 1  # N - Force threshold to slice a series.
 
         test_start_index = 0
-        test_end_index = len(self.force)
+        test_end_index = len(self.force) - 1
 
         part_of_test = False
         count = 0  # How many points in a row are over the threshold.
@@ -226,7 +226,7 @@ class DestructiveTest:
                     if i < 1:
                         i_min = 1
                     break
-            for i in range(1, len(self.strains)):
+            for i in range(i_min, len(self.strains)):
                 if self.strains[i] > max_strain:
                     i_max = i
                     break

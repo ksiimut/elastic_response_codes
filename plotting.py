@@ -134,9 +134,9 @@ def plot_lat_disp(data_to_plot, save_dir, retract_index):
         plt.savefig(save_path)
 
 
-def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=None, line=None):
+def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=None, line=None, text=None):
 
-    fig, ax1 = plt.subplots(figsize=(16, 9))
+    fig, ax1 = plt.subplots(figsize=(14, 8))
 
     color = 'tab:red'
     ax1.set_xlabel(x1[0])
@@ -158,6 +158,12 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
 
     ax1.set_xlim([x1_info[0], x1_info[1]])
     ax1.set_xticks(x1_info[2])
+
+    if text is not None:
+        ax1.text(0.9, 0.9, text,
+                 horizontalalignment='right',
+                 verticalalignment='bottom',
+                 transform=ax1.transAxes)
 
     if x2 is not None:
         ax2 = ax1.twiny()
@@ -203,7 +209,7 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
         for i in y_line:
             x_line.append((i - intercept) / slope)
 
-        ax1.plot(x_line, y_line, color='b')
+        ax1.plot(x_line, y_line, ':', color='b')
 
     # fig.legend(loc='upper left')
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
@@ -214,6 +220,7 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
         save_path = os.path.join(save_dir, title)
         # print(save_path)
         plt.savefig(save_path)
+        plt.close()
 
 
 def calc_limits(data_set):
@@ -224,6 +231,8 @@ def calc_limits(data_set):
     lim_max = round_up(max(data_set), -digit)
     lim_min = round_down(min(data_set), -digit)
     tick_step = round((lim_max - lim_min) / 10, -digit)
+    if tick_step == 0:
+        tick_step = round((lim_max - lim_min) / 10, -(digit - 1))
     # print('Max: ' + str(lim_max) + '; Min: ' + str(lim_min) + '; Step: ' + str(tick_step))
     tick_array = np.arange(lim_min, lim_max, tick_step)
 

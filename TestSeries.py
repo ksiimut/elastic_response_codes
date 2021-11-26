@@ -5,8 +5,9 @@ from scipy import stats
 
 class TestSeries:
 
-    def __init__(self, filepath, specimen_info):
+    def __init__(self, filepath, res_decrease, specimen_info):
 
+        print('Class TestSeries initiated.')
         self.path = filepath
         dat = self.read_dat()
 
@@ -24,17 +25,20 @@ class TestSeries:
         self.l0_axial = sizes[1]
         self.l0_lateral = sizes[2]
 
-        print('Class TestSeries initiated.')
-
+        self.find_auto_offset()
+        self.decrease_resolution(res_decrease)
+        self.offset_series_zero()
 
     def read_dat(self):
 
         dat_name = self.path.split('/')[-1]
         pieces = dat_name.split('_')
         date_of_testing = pieces[0]
-        specimen_id = pieces[1].split('.')[0]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+        specimen_id = pieces[1]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+        series_rep = pieces[2].split('.')[0]
 
-        filename = specimen_id + '_' + date_of_testing
+        filename = '%s_%s_%s' % (date_of_testing, specimen_id, series_rep)
+        print(filename)
         force = ['Compressive Load [N]']  # Compressive load, measured with load cell.
         disp_ax = ['Axial Displacement [mm]']  # Axial displacement, measured with built-in LVDT.
         disp_lat_l = ['Lateral Displacement (L) [mm]']  # Lateral displacement measured with Strain 7-1 (left).
@@ -62,21 +66,22 @@ class TestSeries:
                 break
         f.close()
 
-        print('Number of data points: ')
-        print('Force: ' + str(len(force) - 1))  # -1 for the header row
-        print('Axial Displacement: ' + str(len(disp_ax) - 1))
-        print('Lateral Displacement (L): ' + str(len(disp_lat_l) - 1))
-        print('Lateral Displacement (R): ' + str(len(disp_lat_r) - 1))
+        print('%s: Number of data points: ' % specimen_id)
+        print('\tForce: ' + str(len(force) - 1))  # -1 for the header row
+        print('\tAxial Displacement: ' + str(len(disp_ax) - 1))
+        print('\tLateral Displacement (L): ' + str(len(disp_lat_l) - 1))
+        print('\tLateral Displacement (R): ' + str(len(disp_lat_r) - 1))
 
         if len(force) != len(disp_ax) or len(force) != len(disp_lat_l) or \
                 len(force) != len(disp_lat_r) or len(disp_ax) != len(disp_lat_l) or \
                 len(disp_ax) != len(disp_lat_r) or len(disp_lat_l) != len(disp_lat_r):
-            print('Faulty DAT file import! The number of data points does not match between different types of data.')
-            print('Number of data points: ')
-            print('Force: ' + str(len(force) - 1))  # -1 for the header row
-            print('Axial Displacement: ' + str(len(disp_ax) - 1))
-            print('Lateral Displacement (L): ' + str(len(disp_lat_l) - 1))
-            print('Lateral Displacement (R): ' + str(len(disp_lat_r) - 1))
+            print('%s: Faulty DAT file import! '
+                  'The number of data points does not match between different types of data.' % filename)
+            print('\tNumber of data points: ')
+            print('\tForce: ' + str(len(force) - 1))  # -1 for the header row
+            print('\tAxial Displacement: ' + str(len(disp_ax) - 1))
+            print('\tLateral Displacement (L): ' + str(len(disp_lat_l) - 1))
+            print('\tLateral Displacement (R): ' + str(len(disp_lat_r) - 1))
 
         else:
             for i in range(1, len(disp_lat_l)):
@@ -93,26 +98,29 @@ class TestSeries:
         return read_data
 
     def find_specimen_size(self, specimen_data):
+
+        result = [None, 45, 1]  # [area, l0_axial, l0_lateral]
+
         for specimen in specimen_data[1:]:  # finds initial area and dimensions of specimen
             if self.specimen_id[:3] == specimen[0]:
-                area = specimen[4]
+                result[0] = specimen[4]
                 loading_direction = self.specimen_id[0]
                 lateral_disp_measuring_direction = self.specimen_id[3]
-                print('Loading direction: ' + loading_direction)
-                print('Lateral direction: ' + lateral_disp_measuring_direction)
+                print('\tLoading direction: %s' % loading_direction)
+                print('\tLateral direction: %s' % lateral_disp_measuring_direction)
 
                 if loading_direction == 'X':
-                    l0_axial = specimen[1]
+                    result[1] = specimen[1]
                 elif loading_direction == 'Y':
-                    l0_axial = specimen[2]
+                    result[1] = specimen[2]
 
                 if lateral_disp_measuring_direction == 'X':
-                    l0_lateral = specimen[1]
+                    result[2] = specimen[1]
                 elif lateral_disp_measuring_direction == 'Y':
-                    l0_lateral = specimen[2]
+                    result[2] = specimen[2]
                 elif lateral_disp_measuring_direction == 'Z':
-                    l0_lateral = specimen[3]
-                return [area, l0_axial, l0_lateral]
+                    result[2] = specimen[3]
+        return result
 
     def decrease_resolution(self, decrease_x_times):
 
@@ -134,14 +142,16 @@ class TestSeries:
                 if lengths[i] != lengths[j]:
                     equal = False
         if equal:
-            print('Resolution decreased by ' + str(decrease_x_times) + ' times.')
+            print('\tResolution decreased by %i times.' % decrease_x_times)
             pass
         else:
-            print('Error! Datasets with lowered resolution do not have the same length!')
+            print('\tError! Datasets with lowered resolution do not have the same length!')
+            print(lengths)
 
     def slice_series(self):
 
-        F_THRES = 1  # N - Force threshold to slice a series.
+        F_THRES_START = 5  # N - Force threshold to slice a series.
+        F_THRES_FINISH = 1  # N - Force threshold to slice a series.
 
         test_start_indices = []
         test_end_indices = []
@@ -149,51 +159,60 @@ class TestSeries:
         part_of_test = False
         count = 0  # How many points in a row are over the threshold.
         COUNT_THRES = 3  # How many points need to be over the threshold.
-        OFFSET = 5  # Number of data points outside the test to include (on both sides).
+        OFFSET = 20  # Number of data points outside the test to include (on both sides).
 
-        for i in self.force[1:]:
+        for i in range(1, len(self.force[1:])):
             # print('Count: ' + str(count) + '. Force: ' + str(i))
-            if not part_of_test and i > F_THRES:
+            if not part_of_test and self.force[i] > F_THRES_START:
                 count += 1
                 if count >= COUNT_THRES:
+                    index = i - COUNT_THRES - OFFSET
+                    if index < 1:
+                        index = 1
+                    test_start_indices.append(index)
+                    count = 0
                     part_of_test = True
-                    test_start_indices.append(self.force.index(i) - COUNT_THRES - OFFSET)
-                    count = 0
                     # print('Start force [N]: ' + str(i))
-            elif not part_of_test and i < F_THRES:
-                count = 0
 
-            elif part_of_test and i < F_THRES:
+            elif part_of_test and self.force[i] < F_THRES_FINISH:
                 count += 1
                 if count >= COUNT_THRES:
-                    part_of_test = False
-                    test_end_indices.append(self.force.index(i) + COUNT_THRES + OFFSET)
+                    index = i + COUNT_THRES + OFFSET
+                    if index > len(self.force) - 1:
+                        index = len(self.force) - 1
+                    test_end_indices.append(index)
                     count = 0
+                    part_of_test = False
                     # print('End force [N]: ' + str(i))
-            elif part_of_test and i > F_THRES:
+
+            elif (part_of_test and i > F_THRES_FINISH) or (not part_of_test and i < F_THRES_START):
                 count = 0
 
         # print(test_start_indices)
         # print(test_end_indices)
 
         if len(test_start_indices) != len(test_end_indices):
-            print('Error with series slicing!')
-            print('Starts of test found: ' + str(len(test_start_indices)))
-            print('Ends of test found: ' + str(len(test_end_indices)))
+            print('\tError with series slicing!')
+            print('\tStarts of test found: %i' % len(test_start_indices))
+            print('\tEnds of test found: %i' % len(test_end_indices))
             return None
 
         else:
             reps = len(test_start_indices)  # Number of repetitions made during one test.
-            print('Slicing successful: ' + str(reps) + ' repetitions found in series.')
+            print('\tSlicing of %s successful: %i repetitions found in series.' % (self.specimen_id, reps))
             tests = []  # Repetition class instances
 
             for i in range(reps):
-                slicename = self.filename + '_Rep_' + str(i + 1)
-                force_slice = self.force[test_start_indices[i]:test_end_indices[i]]
-                disp_ax_slice = self.disp_ax[test_start_indices[i]:test_end_indices[i]]
-                disp_lat_total_slice = self.disp_lat_total[test_start_indices[i]:test_end_indices[i]]
-                disp_lat_l_slice = self.disp_lat_l[test_start_indices[i]:test_end_indices[i]]
-                disp_lat_r_slice = self.disp_lat_r[test_start_indices[i]:test_end_indices[i]]
+                i_start = test_start_indices[i]
+                i_finish = test_end_indices[i]
+                # print('Istart: %i; Ifinish: %i' % (i_start, i_finish))
+
+                slicename = '%s_Rep_%i' % (self.filename, i + 1)
+                force_slice = self.force[i_start:i_finish]
+                disp_ax_slice = self.disp_ax[i_start:i_finish]
+                disp_lat_total_slice = self.disp_lat_total[i_start:i_finish]
+                disp_lat_l_slice = self.disp_lat_l[i_start:i_finish]
+                disp_lat_r_slice = self.disp_lat_r[i_start:i_finish]
 
                 # Add data headers to first position.
                 force_slice.insert(0, self.force[0])
@@ -214,6 +233,39 @@ class TestSeries:
 
         return tests
 
+    def find_auto_offset(self):
+
+        VALUE_THRES = 0.001
+        COUNT_THRES = 10
+        count = 0
+
+        for i in range(1, len(self.disp_ax)):
+            this_disp_ax = abs(self.disp_ax[i])
+            this_disp_lat_l = abs(self.disp_lat_l[i])
+            this_disp_lat_r = abs(self.disp_lat_r[i])
+
+            if this_disp_ax < VALUE_THRES and this_disp_lat_l < VALUE_THRES and this_disp_lat_r < VALUE_THRES:
+                count += 1
+                if count >= COUNT_THRES:
+                    index = i - COUNT_THRES
+                    if index < 1:
+                        index = 1
+                        print('Index override at series auto offset.')
+                    new_force = self.force[index:]
+                    new_disp_ax = self.disp_ax[index:]
+                    new_disp_total = self.disp_lat_total[index:]
+                    new_disp_lat_l = self.disp_lat_l[index:]
+                    new_disp_lat_r = self.disp_lat_r[index:]
+
+                    self.force = new_force
+                    self.disp_ax = new_disp_ax
+                    self.disp_lat_total = new_disp_total
+                    self.disp_lat_l = new_disp_lat_l
+                    self.disp_lat_r = new_disp_lat_r
+
+                    print('\tSeries auto offset found at index %i.' % (index))
+                    break
+
     def offset_series_zero(self):
 
         F_THRES = 2  # N Load threshold for detecting start of test.
@@ -232,7 +284,7 @@ class TestSeries:
                     break
 
         disp_offset = self.disp_ax[i]
-        print('Displacement of the series was offset by: ' + str(disp_offset) + ' mm.')
+        print('\tDisplacement of the series was offset by: %f mm.' % disp_offset)
         disp_ax_offset = [self.disp_ax[0]]
         for measurand in self.disp_ax[1:]:
             disp_ax_offset.append(round(measurand - disp_offset, 5))
@@ -245,10 +297,12 @@ class Repetition(TestSeries):
     def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral):
 
         self.title = title
-        self.specimen_id = title[:3]
-        self.test_date = title.split('_')[1]
-        self.lat_dir = title[3]
-        self.repetition = title.split('_')[-1]
+        pcs = self.title.split('_')
+        self.specimen_id = pcs[1][:3]
+        self.test_date = pcs[0]
+        self.lat_dir = pcs[1][3]
+        self.repetition = int(pcs[-1])
+
         self.force = force
         self.disp_ax = disp_ax
         self.disp_lat_total = disp_lat_total
@@ -257,12 +311,19 @@ class Repetition(TestSeries):
         self.area = area
         self.l0_axial = l0_axial
         self.l0_lateral = l0_lateral
+
+        self.rep_offset = self.offset_rep_zero()
+
         self.tipping_point = self.find_retract()
         self.axial_strains = self.calculate_axial_strain()
         self.lateral_strains = self.calculate_lateral_strain()
         self.stresses = self.calculate_stress()
-        self.comp_modulus = self.calculate_modulus()  # [modulus, rsq]
-        self.poisson = self.calculate_poisson()  # [poisson, rsq]
+
+        MIN_STRAIN = 0.007
+        MAX_STRAIN = 0.012
+
+        self.comp_modulus = self.calculate_modulus(MIN_STRAIN, MAX_STRAIN)  # [modulus, intercept, rsq]
+        self.poisson = self.calculate_poisson(MIN_STRAIN, MAX_STRAIN)  # [poisson, rsq]
 
     def find_retract(self):  # Returns index, where unloading starts.
 
@@ -293,12 +354,13 @@ class Repetition(TestSeries):
                     break
 
         disp_offset = self.disp_ax[i]
-        print('Displacement of repetition ' + self.repetition + ' was offset by: ' + str(disp_offset) + ' mm.')
+        print('\t\tDisplacement of repetition %i was offset by: %f mm.' % (self.repetition, disp_offset))
         disp_ax_offset = [self.disp_ax[0]]
         for measurand in self.disp_ax[1:]:
             disp_ax_offset.append(round(measurand - disp_offset, 5))
 
         self.disp_ax = disp_ax_offset
+        return disp_offset
 
     def calculate_axial_strain(self):
 
@@ -321,13 +383,10 @@ class Repetition(TestSeries):
             stresses.append(round(i / self.area, 5))
         return stresses
 
-    def calculate_modulus(self):
-        ######################
-        min_strain = 0.004
-        max_strain = 0.01
-        ######################
+    def calculate_modulus(self, min_strain, max_strain):
+
         i_min = 1  # not 0 to exclude the data header.
-        i_max = 1
+        i_max = len(self.axial_strains) - 1
         if len(self.stresses) == len(self.axial_strains):
             for i in range(1, len(self.axial_strains)):
                 if self.axial_strains[i] > min_strain:
@@ -340,26 +399,24 @@ class Repetition(TestSeries):
                     i_max = i
                     break
             result = scipy.stats.linregress(self.axial_strains[i_min:i_max], self.stresses[i_min:i_max])
-            modulus = round(result.slope / 1000, 3)  # GPa
+            modulus = round(result.slope, 3)  # MPa
+            intercept = round(result.intercept, 3)
             rsq = round(result.rvalue**2, 5)
             # print('Young\'s modulus: ' + str(modulus) + ' GPa')
             # print('R^2: ' + str(rsq))
 
-            return [modulus, rsq]
+            return [modulus, intercept, rsq]
 
         else:
-            print('Error in Compression Modulus calculation.')
-            print('Number of stress data points: ' + str(len(self.stresses)))
-            print('Number of strain data points: ' + str(len(self.axial_strains)))
+            print('\t\tError in Compression Modulus calculation.')
+            print('\t\tNumber of stress data points: %i' % len(self.stresses))
+            print('\t\tNumber of strain data points: %i' % len(self.axial_strains))
             return None
 
-    def calculate_poisson(self):
-        ######################
-        min_strain = 0.004  # min and max AXIAL strains to use for calculations.
-        max_strain = 0.01
-        ######################
+    def calculate_poisson(self, min_strain, max_strain):  # Pars: AXIAL strain values!!
+
         i_min = 1
-        i_max = 1
+        i_max = len(self.axial_strains) - 1
 
         if len(self.axial_strains) == len(self.lateral_strains):
             for i in range(1, len(self.axial_strains)):
@@ -368,7 +425,7 @@ class Repetition(TestSeries):
                     if i < 1:
                         i_min = 1
                     break
-            for i in range(1, len(self.axial_strains)):
+            for i in range(i_min, len(self.axial_strains)):
                 if self.axial_strains[i] > max_strain:
                     i_max = i + 1
                     break
@@ -382,16 +439,16 @@ class Repetition(TestSeries):
             return [poisson, rsq]
 
         else:
-            print('Error in Poisson\'s Ratio calculation.')
-            print('Number of axial strain data points: ' + str(len(self.axial_strains)))
-            print('Number of lateral strain data points: ' + str(len(self.lateral_strains)))
+            print('\t\tError in Poisson\'s Ratio calculation.')
+            print('\t\tNumber of axial strain data points: %i' % len(self.axial_strains))
+            print('\t\tNumber of lateral strain data points: %i' % len(self.lateral_strains))
             return None
 
     def get_rep_summary(self):
-        # headers = ['Specimen ID', 'Date of Testing', 'Repetition',
-        #            'Compressive Modulus [GPa]', 'RSQ',
+        # headers = ['Specimen ID', 'Date of Testing', 'Repetition', 'Zero offset [mm]'
+        #            'Compressive Modulus [MPa]', 'RSQ',
         #            'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
-        summary = [self.specimen_id, self.test_date, self.repetition,
+        summary = [self.specimen_id, self.test_date, self.repetition, self.rep_offset,
                    self.comp_modulus[0], self.comp_modulus[1],
                    self.lat_dir, self.poisson[0], self.poisson[1]]
         return summary

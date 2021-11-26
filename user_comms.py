@@ -14,6 +14,6 @@ def ask_src_path(mode_var):
     return path
 
 
-def ask_save_dir():
-    folder = filedialog.askdirectory(title='Choose Save Directory...')
+def ask_save_dir(prompt):
+    folder = filedialog.askdirectory(title=prompt)
     return folder

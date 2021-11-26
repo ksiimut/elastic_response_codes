@@ -101,10 +101,10 @@ def average_data(data_list, average_of):  # Averages the datapoints of an input 
     for point in data_list[1:]:
         if len(temp) < average_of:
             temp.append(point)
-            if len(temp) == average_of:
-                new_point = round(sum(temp)/len(temp), 5)
-                filtered.append(new_point)
-                temp.clear()
+        elif len(temp) == average_of:
+            new_point = round(sum(temp)/len(temp), 5)
+            filtered.append(new_point)
+            temp.clear()
 
     return filtered
 

@@ -401,6 +401,18 @@ class Repetition(TestSeries):
         print(ary)
 
 """
+
+
+def make_dirs(parent, namelist):
+
+    for d in namelist:
+        try:
+            dir_path = os.path.join(parent, d)
+            os.mkdir(dir_path)
+        except OSError as error:
+            print(error)
+
+
 if __name__ == '__main__':
     specimen_info_excel_path_LT = 'C:\\Users\\kaare\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                   'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
@@ -410,24 +422,167 @@ if __name__ == '__main__':
                                   'Specimen Dimensions Summary.xlsx'
     specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
 
-    path = user_comms.ask_src_path(0)           # Ask user for file path
-    # path = user_comms.ask_src_path(1)           # Ask user for folder path
-    save_dir = user_comms.ask_save_dir()
-    a = TestSeries(path, specimen_sizes)        # Create instance of TestSeries
-    a.decrease_resolution(10)                   # Average data
-    # print(a.disp_ax[:20])
-    a.offset_series_zero()                      # Offset series zero
-    slices = a.slice_series()                   # Slice series to individual repetitions
-    summary = [['Specimen ID', 'Date of Testing', 'Repetition', 'Compressive Modulus [GPa]', 'RSQ', 'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
-    for rep in slices:
-        summary.append(rep.get_rep_summary())
-        plotting.create_fig(rep.title,
-                            rep.axial_strains,
-                            rep.stresses,
-                            retract_index=rep.tipping_point,
-                            x2=rep.lateral_strains,
-                            save_dir=save_dir)
-    data.write_to_csv(a.filename + '.csv', save_dir, summary)
+    var = int(input('Test batch (0) or single file (9): '))
+    plt_var = input('Show plots (sh), save plots (sa), no plots (n)?')
+    sum_var = input('Show summary (sh), save summary (sa), no summary (n)?')
+    if var == 0:
+        data_path = user_comms.ask_src_path(1)  # Ask user for folder path
+        summary = [['Specimen ID', 'Date of Testing', 'Repetition', 'Zero Offset [mm]',
+                    'Compressive Modulus [MPa]', 'RSQ',
+                    'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
+        if plt_var == 'sh':
+
+            for f in os.listdir(data_path):
+                series_data_path = os.path.join(data_path, f).replace('\\', '/')
+                a = TestSeries(series_data_path, 5, specimen_sizes)  # Create instance of TestSeries
+
+                slices = a.slice_series()
+                for rep in slices:
+                    summary.append(rep.get_rep_summary())
+                    text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                           % (rep.comp_modulus[0], rep.poisson[0])
+                    plotting.create_fig(rep.title,
+                                        rep.axial_strains,
+                                        rep.stresses,
+                                        retract_index=rep.tipping_point,
+                                        x2=rep.lateral_strains,
+                                        text=text,
+                                        line=rep.comp_modulus[:2])
+            if sum_var == 'sh':
+                for l in summary:
+                    print(l)
+
+            elif sum_var == 'sa':
+                summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
+                summary_name = input('Enter summary file name (ending.csv)')
+                data.write_to_csv(summary_name, summary_save_dir, summary)
+
+        elif plt_var == 'sa':
+
+            plt_save_dir = user_comms.ask_save_dir('Choose Save Directory for Plots...')
+
+            spec_dirs = []
+            for f in os.listdir(data_path):
+                spec_dirs.append(f.strip('.dat'))
+            make_dirs(plt_save_dir, spec_dirs)
+
+            for f in os.listdir(data_path):
+                series_data_path = os.path.join(data_path, f).replace('\\', '/')
+                a = TestSeries(series_data_path, 5, specimen_sizes)  # Create instance of TestSeries
+                rep_save_dir = os.path.join(plt_save_dir, a.filename)
+
+                slices = a.slice_series()
+                for rep in slices:
+                    summary.append(rep.get_rep_summary())
+                    text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                           % (rep.comp_modulus[0], rep.poisson[0])
+                    plotting.create_fig(rep.title,
+                                        rep.axial_strains,
+                                        rep.stresses,
+                                        retract_index=rep.tipping_point,
+                                        x2=rep.lateral_strains,
+                                        text=text,
+                                        line=rep.comp_modulus[:2],
+                                        save_dir=rep_save_dir)
+            if sum_var == 'sh':
+                for l in summary:
+                    print(l)
+
+            elif sum_var == 'sa':
+                summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
+                summary_name = input('Enter summary file name (ending.csv)')
+                data.write_to_csv(summary_name, summary_save_dir, summary)
+
+        elif plt_var == 'n':
+
+            for f in os.listdir(data_path):
+                series_data_path = os.path.join(data_path, f).replace('\\', '/')
+                a = TestSeries(series_data_path, 5, specimen_sizes)  # Create instance of TestSeries
+
+                slices = a.slice_series()
+                for rep in slices:
+                    summary.append(rep.get_rep_summary())
+
+            if sum_var == 'sh':
+                for l in summary:
+                    print(l)
+
+            elif sum_var == 'sa':
+                summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
+                summary_name = input('Enter summary file name (ending.csv)')
+                data.write_to_csv(summary_name, summary_save_dir, summary)
+
+    elif var == 9:
+        path = user_comms.ask_src_path(0)  # Ask user for file path
+        a = TestSeries(path, 5, specimen_sizes)  # Create instance of TestSeries
+        slices = a.slice_series()  # Slice series to individual repetitions
+        summary = [['Specimen ID', 'Date of Testing', 'Repetition', 'Zero Offset [mm]',
+                    'Compressive Modulus [MPa]', 'RSQ',
+                    'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
+
+        if plt_var == 'sh':
+            for rep in slices:
+                summary.append(rep.get_rep_summary())
+                text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                       % (rep.comp_modulus[0], rep.poisson[0])
+
+                plotting.create_fig(rep.title,
+                                    rep.axial_strains,
+                                    rep.stresses,
+                                    retract_index=rep.tipping_point,
+                                    x2=rep.lateral_strains,
+                                    text=text,
+                                    line=rep.comp_modulus[:2])
+
+            if sum_var == 'sh':
+                for l in summary:
+                    print(l)
+
+            elif sum_var == 'sa':
+                summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
+                summary_name = input('Enter summary file name (ending.csv)')
+                data.write_to_csv(summary_name, summary_save_dir, summary)
+
+        elif plt_var == 'sa':
+            plt_save_dir = user_comms.ask_save_dir('Choose Save Directory for Plots...')
+
+            for rep in slices:
+                summary.append(rep.get_rep_summary())
+                text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                       % (rep.comp_modulus[0], rep.poisson[0])
+                plotting.create_fig(rep.title,
+                                    rep.axial_strains,
+                                    rep.stresses,
+                                    retract_index=rep.tipping_point,
+                                    x2=rep.lateral_strains,
+                                    text=text,
+                                    save_dir=plt_save_dir,
+                                    line=rep.comp_modulus[:2])
+
+            if sum_var == 'sh':
+                for l in summary:
+                    print(l)
+
+            elif sum_var == 'sa':
+                summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
+                summary_name = input('Enter summary file name (ending.csv)')
+                data.write_to_csv(summary_name, summary_save_dir, summary)
+
+        elif plt_var == 'n':
+
+            for rep in slices:
+                summary.append(rep.get_rep_summary())
+
+            if sum_var == 'sh':
+                for l in summary:
+                    print(l)
+
+            elif sum_var == 'sa':
+                summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
+                summary_name = input('Enter summary file name (ending.csv)')
+                data.write_to_csv(summary_name, summary_save_dir, summary)
+    else:
+        pass
 
     """summary = [['Specimen ID', 'Date of Testing', 'Yield Stress 0.02% [MPa]', 'Compressive Modulus [GPa]', 'RSQ']]
     for f in os.listdir(path):
