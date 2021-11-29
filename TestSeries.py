@@ -38,7 +38,7 @@ class TestSeries:
         series_rep = pieces[2].split('.')[0]
 
         filename = '%s_%s_%s' % (date_of_testing, specimen_id, series_rep)
-        print(filename)
+        # print(filename)
         force = ['Compressive Load [N]']  # Compressive load, measured with load cell.
         disp_ax = ['Axial Displacement [mm]']  # Axial displacement, measured with built-in LVDT.
         disp_lat_l = ['Lateral Displacement (L) [mm]']  # Lateral displacement measured with Strain 7-1 (left).
@@ -296,12 +296,14 @@ class Repetition(TestSeries):
 
     def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral):
 
-        self.title = title
+        self.title = title  # YYYYMMDD_X10Z_1_Rep_1
         pcs = self.title.split('_')
         self.specimen_id = pcs[1][:3]
         self.test_date = pcs[0]
+        self.ax_dir = self.specimen_id[0]
         self.lat_dir = pcs[1][3]
         self.repetition = int(pcs[-1])
+        self.batch = int(pcs[2])
 
         self.force = force
         self.disp_ax = disp_ax
@@ -445,11 +447,11 @@ class Repetition(TestSeries):
             return None
 
     def get_rep_summary(self):
-        # headers = ['Specimen ID', 'Date of Testing', 'Repetition', 'Zero offset [mm]'
-        #            'Compressive Modulus [MPa]', 'RSQ',
+        # headers = ['Specimen ID', 'Loading Direction', 'Area [mm2]', 'Date of Testing', 'Batch', 'Repetition',
+        #            'Zero offset [mm]', 'Compressive Modulus [MPa]', 'RSQ',
         #            'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
-        summary = [self.specimen_id, self.test_date, self.repetition, self.rep_offset,
-                   self.comp_modulus[0], self.comp_modulus[2],
+        summary = [self.specimen_id, self.ax_dir, self.area, self.test_date, self.batch, self.repetition,
+                   self.rep_offset, self.comp_modulus[0], self.comp_modulus[2],
                    self.lat_dir, self.poisson[0], self.poisson[1]]
         return summary
 

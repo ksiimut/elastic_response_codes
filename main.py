@@ -420,16 +420,17 @@ if __name__ == '__main__':
     specimen_info_excel_path_PC = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                   'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
                                   'Specimen Dimensions Summary.xlsx'
-    specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
+    specimen_sizes = data.specimen_info(specimen_info_excel_path_PC)
 
     var = int(input('Test batch (0) or single file (9): '))
     plt_var = input('Show plots (sh), save plots (sa), no plots (n)?')
     sum_var = input('Show summary (sh), save summary (sa), no summary (n)?')
+    summary = [['Specimen ID', 'Loading Direction', 'Area [mm^2]', 'Date of Testing', 'Batch', 'Repetition',
+                'Zero Offset [mm]', 'Compressive Modulus [MPa]', 'RSQ',
+                'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
     if var == 0:
         data_path = user_comms.ask_src_path(1)  # Ask user for folder path
-        summary = [['Specimen ID', 'Date of Testing', 'Repetition', 'Zero Offset [mm]',
-                    'Compressive Modulus [MPa]', 'RSQ',
-                    'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
+
         if plt_var == 'sh':
 
             for f in os.listdir(data_path):
@@ -449,8 +450,8 @@ if __name__ == '__main__':
                                         text=text,
                                         line=rep.comp_modulus[:2])
             if sum_var == 'sh':
-                for l in summary:
-                    print(l)
+                for line in summary:
+                    print(line)
 
             elif sum_var == 'sa':
                 summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
@@ -485,8 +486,8 @@ if __name__ == '__main__':
                                         line=rep.comp_modulus[:2],
                                         save_dir=rep_save_dir)
             if sum_var == 'sh':
-                for l in summary:
-                    print(l)
+                for line in summary:
+                    print(line)
 
             elif sum_var == 'sa':
                 summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
@@ -504,8 +505,8 @@ if __name__ == '__main__':
                     summary.append(rep.get_rep_summary())
 
             if sum_var == 'sh':
-                for l in summary:
-                    print(l)
+                for line in summary:
+                    print(line)
 
             elif sum_var == 'sa':
                 summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
@@ -516,9 +517,6 @@ if __name__ == '__main__':
         path = user_comms.ask_src_path(0)  # Ask user for file path
         a = TestSeries(path, 5, specimen_sizes)  # Create instance of TestSeries
         slices = a.slice_series()  # Slice series to individual repetitions
-        summary = [['Specimen ID', 'Date of Testing', 'Repetition', 'Zero Offset [mm]',
-                    'Compressive Modulus [MPa]', 'RSQ',
-                    'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
 
         if plt_var == 'sh':
             for rep in slices:
@@ -535,8 +533,8 @@ if __name__ == '__main__':
                                     line=rep.comp_modulus[:2])
 
             if sum_var == 'sh':
-                for l in summary:
-                    print(l)
+                for line in summary:
+                    print(line)
 
             elif sum_var == 'sa':
                 summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
@@ -560,8 +558,8 @@ if __name__ == '__main__':
                                     line=rep.comp_modulus[:2])
 
             if sum_var == 'sh':
-                for l in summary:
-                    print(l)
+                for line in summary:
+                    print(line)
 
             elif sum_var == 'sa':
                 summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
@@ -574,8 +572,8 @@ if __name__ == '__main__':
                 summary.append(rep.get_rep_summary())
 
             if sum_var == 'sh':
-                for l in summary:
-                    print(l)
+                for line in summary:
+                    print(line)
 
             elif sum_var == 'sa':
                 summary_save_dir = user_comms.ask_save_dir('Choose Save Directory for Summary...')
@@ -611,7 +609,3 @@ if __name__ == '__main__':
                         a.strains,
                         a.stresses,
                         line=[a.slope, a.intercept])"""
-
-
-
-
