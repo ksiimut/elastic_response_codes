@@ -136,31 +136,45 @@ def plot_lat_disp(data_to_plot, save_dir, retract_index):
 
 def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=None, line=None, text=None):
 
-    fig, ax1 = plt.subplots(figsize=(14, 8))
-
+    font = {'family': 'Arial',
+            'weight': 'normal',
+            'size': 8}
+    title_font = {'family': 'Arial',
+                  'weight': 'normal',
+                  'size': 12}
+    label_rot_x = 45
+    cm = 1/2.54
+    fig, ax1 = plt.subplots(figsize=(16*cm, 9*cm))  # AX1 is Y-axis
+    plt.rc('font', **font)
     color = 'tab:red'
-    ax1.set_xlabel(x1[0])
-    ax1.set_ylabel(y1[0], color=color)
+    ax1.set_xlabel(x1[0], font=font)
+    ax1.set_ylabel(y1[0], color=color, font=font)
     if retract_index is not None:
-        ax1.plot(x1[1:retract_index], y1[1:retract_index], color=color, label='Loading')
-        ax1.plot(x1[retract_index:], y1[retract_index:], '--', color=color, label='Unloading')
+        ax1.plot(x1[1:retract_index], y1[1:retract_index], color=color, label='Loading', linewidth=1)
+        ax1.plot(x1[retract_index:], y1[retract_index:], '--', color=color, label='Unloading', linewidth=1)
     else:
-        ax1.plot(x1[1:], y1[1:], color=color)
+        ax1.plot(x1[1:], y1[1:], color=color, linewidth=1)
     ax1.tick_params(axis='y', labelcolor=color)
-    ax1.set_title(title)
+    ax1.set_title(title, **title_font)
 
     y1_info = calc_limits(y1[1:])
 
     plt.ylim([y1_info[0], y1_info[1]])
     ax1.set_yticks(y1_info[2])
 
+    for tick in ax1.get_yticklabels():
+        tick.set_fontproperties(font)
+
     x1_info = calc_limits(x1[1:])
 
     ax1.set_xlim([x1_info[0], x1_info[1]])
     ax1.set_xticks(x1_info[2])
 
+    for tick in ax1.get_xticklabels():
+        tick.set_fontproperties(font)
+
     if text is not None:
-        ax1.text(0.9, 0.9, text,
+        ax1.text(0.17, 0.07, text,
                  horizontalalignment='right',
                  verticalalignment='bottom',
                  transform=ax1.transAxes)
@@ -169,12 +183,12 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
         ax2 = ax1.twiny()
 
         color = 'tab:blue'
-        ax2.set_xlabel(x2[0], color=color)
+        ax2.set_xlabel(x2[0], color=color, font=font)
         if retract_index is not None:
-            ax2.plot(x2[1:retract_index], y1[1:retract_index], color=color)
-            ax2.plot(x2[retract_index:], y1[retract_index:], '--', color=color)
+            ax2.plot(x2[1:retract_index], y1[1:retract_index], color=color, linewidth=1)
+            ax2.plot(x2[retract_index:], y1[retract_index:], '--', color=color, linewidth=1)
         else:
-            ax2.plot(x2[1:], y1[1:], color=color)
+            ax2.plot(x2[1:], y1[1:], color=color, linewidth=1)
         ax2.tick_params(axis='x', labelcolor=color)
 
         x2_info = calc_limits(x2[1:])
@@ -182,22 +196,28 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
         ax2.set_xlim([x2_info[0], x2_info[1]])
         ax2.set_xticks(x2_info[2])
 
+        for tick in ax2.get_xticklabels():
+            tick.set_fontproperties(font)
+
     if y2 is not None:
         ax3 = ax1.twinx()
 
         color = 'tab:green'
-        ax3.set_xlabel(y2[0], color=color)
+        ax3.set_xlabel(y2[0], color=color, font=font)
         if retract_index is not None:
-            ax3.plot(x1[1:retract_index], y2[1:retract_index], color=color)
-            ax3.plot(x1[retract_index:], y2[retract_index:], '--', color=color)
+            ax3.plot(x1[1:retract_index], y2[1:retract_index], color=color, linewidth=1)
+            ax3.plot(x1[retract_index:], y2[retract_index:], '--', color=color, linewidth=1)
         else:
-            ax3.plot(x1[1:], y2[1:], color=color)
+            ax3.plot(x1[1:], y2[1:], color=color, linewidth=1)
         ax3.tick_params(axis='y', labelcolor=color)
 
         y2_info = calc_limits(y2[1:])
 
         ax3.set_ylim([y2_info[0], y2_info[1]])
         ax3.set_yticks(y2_info[2])
+
+        for tick in ax3.get_yticklabels():
+            tick.set_fontproperties(font)
 
     if line is not None:
         slope = line[0]

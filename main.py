@@ -420,7 +420,7 @@ if __name__ == '__main__':
     specimen_info_excel_path_PC = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                   'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
                                   'Specimen Dimensions Summary.xlsx'
-    specimen_sizes = data.specimen_info(specimen_info_excel_path_PC)
+    specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
 
     var = int(input('Test batch (0) or single file (9): '))
     plt_var = input('Show plots (sh), save plots (sa), no plots (n)?')
@@ -440,15 +440,15 @@ if __name__ == '__main__':
                 slices = a.slice_series()
                 for rep in slices:
                     summary.append(rep.get_rep_summary())
-                    text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                    text = '$E_C = %.1f MPa$ \n $\\nu = %.3f$' \
                            % (rep.comp_modulus[0], rep.poisson[0])
                     plotting.create_fig(rep.title,
-                                        rep.axial_strains,
+                                        rep.get_strain_percent(axial=True),
                                         rep.stresses,
                                         retract_index=rep.tipping_point,
-                                        x2=rep.lateral_strains,
+                                        x2=rep.get_strain_percent(axial=False),
                                         text=text,
-                                        line=rep.comp_modulus[:2])
+                                        line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]])
             if sum_var == 'sh':
                 for line in summary:
                     print(line)
@@ -475,15 +475,15 @@ if __name__ == '__main__':
                 slices = a.slice_series()
                 for rep in slices:
                     summary.append(rep.get_rep_summary())
-                    text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                    text = '$E_C = %.1f MPa$ \n $\\nu = %.3f$' \
                            % (rep.comp_modulus[0], rep.poisson[0])
                     plotting.create_fig(rep.title,
-                                        rep.axial_strains,
+                                        rep.get_strain_percent(axial=True),
                                         rep.stresses,
                                         retract_index=rep.tipping_point,
-                                        x2=rep.lateral_strains,
+                                        x2=rep.get_strain_percent(axial=False),
                                         text=text,
-                                        line=rep.comp_modulus[:2],
+                                        line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]],
                                         save_dir=rep_save_dir)
             if sum_var == 'sh':
                 for line in summary:
@@ -521,16 +521,15 @@ if __name__ == '__main__':
         if plt_var == 'sh':
             for rep in slices:
                 summary.append(rep.get_rep_summary())
-                text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
-                       % (rep.comp_modulus[0], rep.poisson[0])
-
+                text = '$E_C = %.1f~MPa$ \n $\\nu_{%s} = %.3f$' \
+                       % (rep.comp_modulus[0], rep.lat_dir, rep.poisson[0])
                 plotting.create_fig(rep.title,
-                                    rep.axial_strains,
+                                    rep.get_strain_percent(axial=True),
                                     rep.stresses,
                                     retract_index=rep.tipping_point,
-                                    x2=rep.lateral_strains,
+                                    x2=rep.get_strain_percent(axial=False),
                                     text=text,
-                                    line=rep.comp_modulus[:2])
+                                    line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]])
 
             if sum_var == 'sh':
                 for line in summary:
@@ -546,16 +545,16 @@ if __name__ == '__main__':
 
             for rep in slices:
                 summary.append(rep.get_rep_summary())
-                text = 'Compressive Modulus: %.1f MPa \n Poisson\'s Ratio: %.3f' \
+                text = '$E_C = %.1f MPa$ \n $\\nu = %.3f$' \
                        % (rep.comp_modulus[0], rep.poisson[0])
                 plotting.create_fig(rep.title,
-                                    rep.axial_strains,
+                                    rep.get_strain_percent(axial=True),
                                     rep.stresses,
                                     retract_index=rep.tipping_point,
-                                    x2=rep.lateral_strains,
+                                    x2=rep.get_strain_percent(axial=False),
                                     text=text,
                                     save_dir=plt_save_dir,
-                                    line=rep.comp_modulus[:2])
+                                    line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]])
 
             if sum_var == 'sh':
                 for line in summary:

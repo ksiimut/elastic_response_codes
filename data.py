@@ -71,6 +71,8 @@ def specimen_info(path):
         elif loading_dir == 'Y':
             area = round(specimen[1] * specimen[3], 5)
             specimen.append(area)
+        else:
+            print('Error! Could not find loading direction of specimen!')
     return a
 
 

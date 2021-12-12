@@ -20,6 +20,10 @@ class TestSeries:
         self.disp_lat_l = dat[6]
         self.disp_lat_r = dat[7]
 
+        self.infill_spec = True
+        if len(self.filename.split('_')) == 4:
+            self.infill_spec = False
+
         sizes = self.find_specimen_size(specimen_info)
         self.area = sizes[0]
         self.l0_axial = sizes[1]
@@ -33,9 +37,10 @@ class TestSeries:
 
         dat_name = self.path.split('/')[-1]
         pieces = dat_name.split('_')
+        # print(pieces)
         date_of_testing = pieces[0]
-        specimen_id = pieces[1]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
-        series_rep = pieces[2].split('.')[0]
+        specimen_id = pieces[1] + '_' + pieces[2]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+        series_rep = pieces[3].split('.')[0]
 
         filename = '%s_%s_%s' % (date_of_testing, specimen_id, series_rep)
         # print(filename)
@@ -100,26 +105,50 @@ class TestSeries:
     def find_specimen_size(self, specimen_data):
 
         result = [None, 45, 1]  # [area, l0_axial, l0_lateral]
-
+        print(specimen_data)
         for specimen in specimen_data[1:]:  # finds initial area and dimensions of specimen
-            if self.specimen_id[:3] == specimen[0]:
-                result[0] = specimen[4]
-                loading_direction = self.specimen_id[0]
-                lateral_disp_measuring_direction = self.specimen_id[3]
-                print('\tLoading direction: %s' % loading_direction)
-                print('\tLateral direction: %s' % lateral_disp_measuring_direction)
+            if self.infill_spec:
+                if self.specimen_id[:3] == specimen[0]:
+                    result[0] = specimen[4]
+                    loading_direction = self.specimen_id[0]
+                    lateral_disp_measuring_direction = self.specimen_id[3]
+                    print('\tLoading direction: %s' % loading_direction)
+                    print('\tLateral direction: %s' % lateral_disp_measuring_direction)
 
-                if loading_direction == 'X':
-                    result[1] = specimen[1]
-                elif loading_direction == 'Y':
-                    result[1] = specimen[2]
+                    if loading_direction == 'X':
+                        result[1] = specimen[1]
+                    elif loading_direction == 'Y':
+                        result[1] = specimen[2]
 
-                if lateral_disp_measuring_direction == 'X':
-                    result[2] = specimen[1]
-                elif lateral_disp_measuring_direction == 'Y':
-                    result[2] = specimen[2]
-                elif lateral_disp_measuring_direction == 'Z':
-                    result[2] = specimen[3]
+                    if lateral_disp_measuring_direction == 'X':
+                        result[2] = specimen[1]
+                    elif lateral_disp_measuring_direction == 'Y':
+                        result[2] = specimen[2]
+                    elif lateral_disp_measuring_direction == 'Z':
+                        result[2] = specimen[3]
+
+            else:
+                if self.specimen_id[:5] == specimen[0]:
+                    result[0] = specimen[4]
+                    loading_direction = self.specimen_id[0]
+                    lateral_disp_measuring_direction = self.specimen_id[5]
+                    print('\tLoading direction: %s' % loading_direction)
+                    print('\tLateral direction: %s' % lateral_disp_measuring_direction)
+
+                    if loading_direction == 'X':
+                        result[1] = specimen[1]
+                    elif loading_direction == 'Y':
+                        result[1] = specimen[2]
+
+                    if lateral_disp_measuring_direction == 'X':
+                        result[2] = specimen[1]
+                    elif lateral_disp_measuring_direction == 'Y':
+                        result[2] = specimen[2]
+                    elif lateral_disp_measuring_direction == 'Z':
+                        result[2] = specimen[3]
+
+        if result[0] is None:
+            print('\tNo area calculated for specimen.')
         return result
 
     def decrease_resolution(self, decrease_x_times):
@@ -151,7 +180,7 @@ class TestSeries:
     def slice_series(self):
 
         F_THRES_START = 5  # N - Force threshold to slice a series.
-        F_THRES_FINISH = 1  # N - Force threshold to slice a series.
+        F_THRES_FINISH = 2  # N - Force threshold to slice a series.
 
         test_start_indices = []
         test_end_indices = []
@@ -178,6 +207,8 @@ class TestSeries:
                 count += 1
                 if count >= COUNT_THRES:
                     index = i + COUNT_THRES + OFFSET
+                    print('End index: %i' % index)
+                    print(self.force[i-20:i+20])
                     if index > len(self.force) - 1:
                         index = len(self.force) - 1
                     test_end_indices.append(index)
@@ -296,14 +327,24 @@ class Repetition(TestSeries):
 
     def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral):
 
-        self.title = title  # YYYYMMDD_X10Z_1_Rep_1
+        self.title = title  # YYYYMMDD_X10Z_1_Rep_1 or YYYYMMDD_X00_1Y_1_Rep_1
         pcs = self.title.split('_')
-        self.specimen_id = pcs[1][:3]
-        self.test_date = pcs[0]
-        self.ax_dir = self.specimen_id[0]
-        self.lat_dir = pcs[1][3]
-        self.repetition = int(pcs[-1])
-        self.batch = int(pcs[2])
+
+        if len(pcs) == 5:  # Is infill specimen
+            self.specimen_id = pcs[1][:3]
+            self.test_date = pcs[0]
+            self.ax_dir = self.specimen_id[0]
+            self.lat_dir = pcs[1][3]
+            self.repetition = int(pcs[-1])
+            self.batch = int(pcs[-3])
+
+        elif len(pcs) == 6:
+            self.specimen_id = pcs[1] + '_' + pcs[2][0]
+            self.test_date = pcs[0]
+            self.ax_dir = self.specimen_id[0]
+            self.lat_dir = pcs[2][1]
+            self.repetition = int(pcs[-1])
+            self.batch = int(pcs[-3])
 
         self.force = force
         self.disp_ax = disp_ax
@@ -321,8 +362,8 @@ class Repetition(TestSeries):
         self.lateral_strains = self.calculate_lateral_strain()
         self.stresses = self.calculate_stress()
 
-        MIN_STRAIN = 0.007
-        MAX_STRAIN = 0.012
+        MIN_STRAIN = 0.005
+        MAX_STRAIN = 0.01
 
         self.comp_modulus = self.calculate_modulus(MIN_STRAIN, MAX_STRAIN)  # [modulus, intercept, rsq]
         self.poisson = self.calculate_poisson(MIN_STRAIN, MAX_STRAIN)  # [poisson, rsq]
@@ -445,6 +486,22 @@ class Repetition(TestSeries):
             print('\t\tNumber of axial strain data points: %i' % len(self.axial_strains))
             print('\t\tNumber of lateral strain data points: %i' % len(self.lateral_strains))
             return None
+
+    def get_strain_percent(self, axial=True):  # axial - boolean: True - axial strain; False - Lateral Strain
+
+        strain_percent = []
+
+        if axial:
+            strain_percent.append('Axial Strain [%]')
+            for i in self.axial_strains[1:]:
+                strain_percent.append(i * 100)
+
+        else:
+            strain_percent.append('Lateral Strain [%]')
+            for i in self.lateral_strains[1:]:
+                strain_percent.append(i * 100)
+
+        return strain_percent
 
     def get_rep_summary(self):
         # headers = ['Specimen ID', 'Loading Direction', 'Area [mm2]', 'Date of Testing', 'Batch', 'Repetition',
