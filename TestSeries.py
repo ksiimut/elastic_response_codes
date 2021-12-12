@@ -19,15 +19,13 @@ class TestSeries:
         self.disp_lat_total = dat[5]
         self.disp_lat_l = dat[6]
         self.disp_lat_r = dat[7]
-
-        self.infill_spec = True
-        if len(self.filename.split('_')) == 4:
-            self.infill_spec = False
+        self.infill_spec = dat[8]
 
         sizes = self.find_specimen_size(specimen_info)
         self.area = sizes[0]
         self.l0_axial = sizes[1]
         self.l0_lateral = sizes[2]
+        self.si_ratio = sizes[3]
 
         self.find_auto_offset()
         self.decrease_resolution(res_decrease)
@@ -37,10 +35,21 @@ class TestSeries:
 
         dat_name = self.path.split('/')[-1]
         pieces = dat_name.split('_')
-        # print(pieces)
-        date_of_testing = pieces[0]
-        specimen_id = pieces[1] + '_' + pieces[2]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
-        series_rep = pieces[3].split('.')[0]
+        print(pieces)
+
+        if len(pieces) == 4:
+            infill_spec = False
+            date_of_testing = pieces[0]
+            specimen_id = pieces[1] + '_' + pieces[2]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+            series_rep = pieces[3].split('.')[0]
+
+        elif len(pieces) == 3:
+            infill_spec = True
+            date_of_testing = pieces[0]
+            specimen_id = pieces[1][:4]  # X40Z / X40Y (loadingdir + dimension + lateral disp axis)
+            series_rep = pieces[2].split('.')[0]
+        else:
+            raise Exception('Filename contains of invalid number of pieces')
 
         filename = '%s_%s_%s' % (date_of_testing, specimen_id, series_rep)
         # print(filename)
@@ -99,56 +108,63 @@ class TestSeries:
                      disp_ax,
                      disp_lat_total,
                      disp_lat_l,
-                     disp_lat_r]
+                     disp_lat_r,
+                     infill_spec]
         return read_data
 
     def find_specimen_size(self, specimen_data):
 
-        result = [None, 45, 1]  # [area, l0_axial, l0_lateral]
-        print(specimen_data)
+        result = [None, 45, 1, 0]  # [area, l0_axial, l0_lateral, si_ratio]
+        index = None
+
+        if self.infill_spec:
+            search_id = self.specimen_id[:3]
+        else:
+            search_id = self.specimen_id[:5]
+
         for specimen in specimen_data[1:]:  # finds initial area and dimensions of specimen
-            if self.infill_spec:
-                if self.specimen_id[:3] == specimen[0]:
-                    result[0] = specimen[4]
-                    loading_direction = self.specimen_id[0]
-                    lateral_disp_measuring_direction = self.specimen_id[3]
-                    print('\tLoading direction: %s' % loading_direction)
-                    print('\tLateral direction: %s' % lateral_disp_measuring_direction)
+            if specimen[0] == search_id:
+                index = specimen_data.index(specimen)
+        if index is None:
+            raise Exception('No matching specimen found from specimen data file!')
 
-                    if loading_direction == 'X':
-                        result[1] = specimen[1]
-                    elif loading_direction == 'Y':
-                        result[1] = specimen[2]
+        this_spec = specimen_data[index]
+        loading_direction = self.specimen_id[0]
+        lateral_disp_measuring_direction = self.specimen_id[-1]
 
-                    if lateral_disp_measuring_direction == 'X':
-                        result[2] = specimen[1]
-                    elif lateral_disp_measuring_direction == 'Y':
-                        result[2] = specimen[2]
-                    elif lateral_disp_measuring_direction == 'Z':
-                        result[2] = specimen[3]
+        print('\tLoading direction: %s' % loading_direction)
+        print('\tLateral direction: %s' % lateral_disp_measuring_direction)
 
-            else:
-                if self.specimen_id[:5] == specimen[0]:
-                    result[0] = specimen[4]
-                    loading_direction = self.specimen_id[0]
-                    lateral_disp_measuring_direction = self.specimen_id[5]
-                    print('\tLoading direction: %s' % loading_direction)
-                    print('\tLateral direction: %s' % lateral_disp_measuring_direction)
+        result[0] = this_spec[4]
 
-                    if loading_direction == 'X':
-                        result[1] = specimen[1]
-                    elif loading_direction == 'Y':
-                        result[1] = specimen[2]
+        if loading_direction == 'X':
+            result[1] = this_spec[1]
+        elif loading_direction == 'Y':
+            result[1] = this_spec[2]
 
-                    if lateral_disp_measuring_direction == 'X':
-                        result[2] = specimen[1]
-                    elif lateral_disp_measuring_direction == 'Y':
-                        result[2] = specimen[2]
-                    elif lateral_disp_measuring_direction == 'Z':
-                        result[2] = specimen[3]
+        if lateral_disp_measuring_direction == 'X':
+            result[2] = this_spec[1]
+        elif lateral_disp_measuring_direction == 'Y':
+            result[2] = this_spec[2]
+        elif lateral_disp_measuring_direction == 'Z':
+            result[2] = this_spec[3]
+
+        if self.infill_spec:
+            wall_thickness = 0.55
+        else:
+            wall_thickness = int(self.specimen_id[1:3]) / 10
+            print(wall_thickness)
+        volume_total = this_spec[1] * this_spec[2] * this_spec[3]
+        volume_infill = (this_spec[1] - wall_thickness) * \
+                        (this_spec[2] - wall_thickness) * \
+                        (this_spec[3] - wall_thickness)
+        volume_shell = volume_total - volume_infill
+        si_ratio = volume_shell / volume_infill
+        print('\t\t%.1f / %.1f = %.5f' % (volume_shell, volume_infill, si_ratio))
+        result[3] = round(si_ratio, 5)
 
         if result[0] is None:
-            print('\tNo area calculated for specimen.')
+            raise TypeError('\tNo area calculated for specimen.')
         return result
 
     def decrease_resolution(self, decrease_x_times):
@@ -207,8 +223,8 @@ class TestSeries:
                 count += 1
                 if count >= COUNT_THRES:
                     index = i + COUNT_THRES + OFFSET
-                    print('End index: %i' % index)
-                    print(self.force[i-20:i+20])
+                    # print('End index: %i' % index)
+                    # print(self.force[i-20:i+20])
                     if index > len(self.force) - 1:
                         index = len(self.force) - 1
                     test_end_indices.append(index)
@@ -260,7 +276,8 @@ class TestSeries:
                                         disp_lat_r_slice,
                                         self.area,
                                         self.l0_axial,
-                                        self.l0_lateral))
+                                        self.l0_lateral,
+                                        self.si_ratio))
 
         return tests
 
@@ -323,9 +340,9 @@ class TestSeries:
         self.disp_ax = disp_ax_offset
 
 
-class Repetition(TestSeries):
+class Repetition:
 
-    def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral):
+    def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral, si_ratio):
 
         self.title = title  # YYYYMMDD_X10Z_1_Rep_1 or YYYYMMDD_X00_1Y_1_Rep_1
         pcs = self.title.split('_')
@@ -354,6 +371,7 @@ class Repetition(TestSeries):
         self.area = area
         self.l0_axial = l0_axial
         self.l0_lateral = l0_lateral
+        self.si_ratio = si_ratio
 
         self.rep_offset = self.offset_rep_zero()
 
@@ -504,10 +522,11 @@ class Repetition(TestSeries):
         return strain_percent
 
     def get_rep_summary(self):
-        # headers = ['Specimen ID', 'Loading Direction', 'Area [mm2]', 'Date of Testing', 'Batch', 'Repetition',
-        #            'Zero offset [mm]', 'Compressive Modulus [MPa]', 'RSQ',
+        # headers = ['Specimen ID', 'Loading Direction', 'Area [mm2]', 'Shell/Infill Ratio', 'Date of Testing',
+        #            'Batch', 'Repetition', 'Zero offset [mm]',
+        #            'Compressive Modulus [MPa]', 'RSQ',
         #            'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
-        summary = [self.specimen_id, self.ax_dir, self.area, self.test_date, self.batch, self.repetition,
+        summary = [self.specimen_id, self.ax_dir, self.area, self.si_ratio, self.test_date, self.batch, self.repetition,
                    self.rep_offset, self.comp_modulus[0], self.comp_modulus[2],
                    self.lat_dir, self.poisson[0], self.poisson[1]]
         return summary
