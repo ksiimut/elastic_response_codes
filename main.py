@@ -54,7 +54,7 @@ if __name__ == '__main__':
     specimen_info_excel_path_PC = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                   'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
                                   'Specimen Dimensions Summary.xlsx'
-    specimen_sizes = data.specimen_info(specimen_info_excel_path_PC)
+    specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
 
     var = int(input('Test batch (0) or single file (9): '))
     plt_var = input('Show plots (sh), save plots (sa), no plots (n)?')

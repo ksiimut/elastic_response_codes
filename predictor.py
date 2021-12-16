@@ -1,6 +1,9 @@
 import numpy as np
 import math
 import plotting
+import data
+import user_comms
+
 
 def find_size(B, W, L0):
     # a = L0 - B * L0 + 2 * W * B
@@ -50,19 +53,34 @@ def calc_ratio(width, wall, len_init):
 if __name__ == '__main__':
 
     E_SHELL = 1000  # Compressive modulus of pure shell (100% infill)
-    E_INFILL = 250  # Compressive modulus of pure infill (50% triangular)
+    # E_INFILL = 334  # Compressive modulus of pure infill (50% triangular) X-direction
+    E_INFILL = 263  # Compressive modulus of pure infill (50% triangular) Y-direction
     # SI = 0.1        # Shell/Infill ratio
     WT = 0.55          # Wall thickness in mm
     L0 = 45         # Initial length in mm in loading direction
+    WIDTH = 45
 
     f_infill_array = ['Infill Fraction']
     e_total_array = ['Specimen Modulus [MPa]']
-    si_array = list(np.arange(0, 0.16, 0.01))
-    si_array.insert(0, 'Shell/Infill Ratio')
-    for si in si_array[1:]:
-        f_infill_array.append(1 / (si + 1))
-        e_total = calc_total_modulus(WT, find_size(si, WT, L0), L0)
+    wt_array = list(np.arange(0, 15, 0.1))
+    wt_array.insert(0, 'Wall thickness [mm]')
+    si_array = ['Shell/Infill Ratio']
+    for i in wt_array[1:]:
+        si_array.append(calc_ratio(WIDTH, i, L0))
+
+    # print(si_array)
+
+    # si_array = list(np.arange(0, 0.35, 0.01))
+    # si_array.insert(0, 'Shell/Infill Ratio')
+    for i in range(1, len(si_array[1:]) + 1):
+        f_infill_array.append(1 / (si_array[i] + 1))
+        e_total = round(calc_total_modulus(wt_array[i], WIDTH, L0), 5)
+        # e_total = calc_total_modulus(WT, find_size(si, WT, L0), L0)
         e_total_array.append(e_total)
 
-    text = '$E_S=%i~MPa$ \n $E_I=%i~MPa$ \n $t=%.2f~mm$ \n $l_0=%i~mm$' % (E_SHELL, E_INFILL, WT, L0)
-    plotting.create_fig('test1', si_array, e_total_array)
+    dtw = [si_array, e_total_array]
+    # print(dtw)
+    # data.write_to_csv('sim_y.csv', user_comms.ask_save_dir('Choose save dir...'), dtw)
+
+    text = '$E_S=%i~MPa$ \n $E_I=%i~MPa$ \n $l_0=%i~mm$' % (E_SHELL, E_INFILL, L0)
+    plotting.create_fig('sim_y', si_array, e_total_array, text=text)

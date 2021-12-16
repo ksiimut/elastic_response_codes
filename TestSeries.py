@@ -380,8 +380,8 @@ class Repetition:
         self.lateral_strains = self.calculate_lateral_strain()
         self.stresses = self.calculate_stress()
 
-        MIN_STRAIN = 0.005
-        MAX_STRAIN = 0.01
+        MIN_STRAIN = 0.007
+        MAX_STRAIN = 0.012
 
         self.comp_modulus = self.calculate_modulus(MIN_STRAIN, MAX_STRAIN)  # [modulus, intercept, rsq]
         self.poisson = self.calculate_poisson(MIN_STRAIN, MAX_STRAIN)  # [poisson, rsq]
