@@ -25,7 +25,7 @@ class TestSeries:
         self.area = sizes[0]
         self.l0_axial = sizes[1]
         self.l0_lateral = sizes[2]
-        self.si_ratio = sizes[3]
+        self.f_infill = sizes[3]
 
         self.find_auto_offset()
         self.decrease_resolution(res_decrease)
@@ -72,8 +72,8 @@ class TestSeries:
                         empty_line_counter = 0
                         force.append(-round(float(line[0].replace(',', '.')), 5))
                         disp_ax.append(-round(float(line[1].replace(',', '.')), 5))
-                        disp_lat_l.append(round(float(line[2].replace(',', '.')), 5))
-                        disp_lat_r.append(round(float(line[3].replace(',', '.')), 5))
+                        disp_lat_l.append(-round(float(line[2].replace(',', '.')), 5))
+                        disp_lat_r.append(-round(float(line[3].replace(',', '.')), 5))
                 except:
                     pass
             else:
@@ -99,7 +99,7 @@ class TestSeries:
 
         else:
             for i in range(1, len(disp_lat_l)):
-                disp_lat_total.append(round(-(disp_lat_l[i] + disp_lat_r[i]), 5))
+                disp_lat_total.append(round((disp_lat_l[i] + disp_lat_r[i]), 5))
 
         read_data = [specimen_id,
                      date_of_testing,
@@ -114,7 +114,7 @@ class TestSeries:
 
     def find_specimen_size(self, specimen_data):
 
-        result = [None, 45, 1, 0]  # [area, l0_axial, l0_lateral, si_ratio]
+        result = [None, 45, 1, 0]  # [area, l0_axial, l0_lateral, f_infill]
         index = None
 
         if self.infill_spec:
@@ -150,21 +150,22 @@ class TestSeries:
             result[2] = this_spec[3]
 
         if self.infill_spec:
-            wall_thickness = 0.55
+            wall_thickness = 0.4
         else:
             if int(self.specimen_id[1:3]) == 0:
                 wall_thickness = int(self.specimen_id[1:3]) / 10
+            elif int(self.specimen_id[1:3]) == 23:
+                wall_thickness = min([this_spec[1], this_spec[2], this_spec[3]]) / 2
             else:
-                wall_thickness = int(self.specimen_id[1:3]) / 10 + 0.15
+                wall_thickness = int(self.specimen_id[1:3]) / 10
             # print(wall_thickness)
         volume_total = this_spec[1] * this_spec[2] * this_spec[3]
         volume_infill = (this_spec[1] - 2 * wall_thickness) * \
                         (this_spec[2] - 2 * wall_thickness) * \
                         (this_spec[3] - 2 * wall_thickness)
-        volume_shell = volume_total - volume_infill
-        si_ratio = volume_shell / volume_infill
-        print('\t\t%.1f / %.1f = %.5f' % (volume_shell, volume_infill, si_ratio))
-        result[3] = round(si_ratio, 5)
+        f_infill = volume_infill / volume_total
+        # print('\t\t%.1f / %.1f = %.5f' % (volume_infill, volume_total, f_infill))
+        result[3] = round(f_infill, 5)
 
         if result[0] is None:
             raise TypeError('\tNo area calculated for specimen.')
@@ -280,7 +281,7 @@ class TestSeries:
                                         self.area,
                                         self.l0_axial,
                                         self.l0_lateral,
-                                        self.si_ratio))
+                                        self.f_infill))
 
         return tests
 
@@ -345,7 +346,7 @@ class TestSeries:
 
 class Repetition:
 
-    def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral, si_ratio):
+    def __init__(self, title, force, disp_ax, disp_lat_total, disp_lat_l, disp_lat_r, area, l0_axial, l0_lateral, f_infill):
 
         self.title = title  # YYYYMMDD_X10Z_1_Rep_1 or YYYYMMDD_X00_1Y_1_Rep_1
         pcs = self.title.split('_')
@@ -374,7 +375,7 @@ class Repetition:
         self.area = area
         self.l0_axial = l0_axial
         self.l0_lateral = l0_lateral
-        self.si_ratio = si_ratio
+        self.f_infill = f_infill
 
         self.rep_offset = self.offset_rep_zero()
 
@@ -384,10 +385,10 @@ class Repetition:
         self.stresses = self.calculate_stress()
 
         MIN_STRAIN = 0.005
-        MAX_STRAIN = 0.010
+        MAX_STRAIN = 0.01
 
         self.comp_modulus = self.calculate_modulus(MIN_STRAIN, MAX_STRAIN)  # [modulus, intercept, rsq]
-        self.poisson = self.calculate_poisson(MIN_STRAIN, MAX_STRAIN)  # [poisson, rsq]
+        self.poisson = self.calculate_poisson(MIN_STRAIN, MAX_STRAIN)  # [poisson, rsq, intercept]
 
     def find_retract(self):  # Returns index, where unloading starts.
 
@@ -418,7 +419,7 @@ class Repetition:
                     break
 
         disp_offset = self.disp_ax[i]
-        print('\t\tDisplacement of repetition %i was offset by: %f mm.' % (self.repetition, disp_offset))
+        # print('\t\tDisplacement of repetition %i was offset by: %f mm.' % (self.repetition, disp_offset))
         disp_ax_offset = [self.disp_ax[0]]
         for measurand in self.disp_ax[1:]:
             disp_ax_offset.append(round(measurand - disp_offset, 5))
@@ -491,16 +492,17 @@ class Repetition:
                     break
             for i in range(i_min, len(self.axial_strains)):
                 if self.axial_strains[i] > max_strain:
-                    i_max = i + 1
+                    i_max = i
                     break
 
             result = scipy.stats.linregress(self.axial_strains[i_min:i_max], self.lateral_strains[i_min:i_max])
             poisson = round(-result.slope, 5)
             rsq = round(result.rvalue**2, 5)
+            intercept = round(result.intercept, 5)
             # print('Poisson\'s Ratio: ' + str(poisson))
             # print('R^2: ' + str(rsq))
 
-            return [poisson, rsq]
+            return [poisson, rsq, intercept]
 
         else:
             print('\t\tError in Poisson\'s Ratio calculation.')
@@ -529,11 +531,7 @@ class Repetition:
         #            'Batch', 'Repetition', 'Zero offset [mm]',
         #            'Compressive Modulus [MPa]', 'RSQ',
         #            'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']
-        summary = [self.specimen_id, self.ax_dir, self.area, self.si_ratio, self.test_date, self.batch, self.repetition,
+        summary = [self.specimen_id, self.ax_dir, self.area, self.f_infill, self.test_date, self.batch, self.repetition,
                    self.rep_offset, self.comp_modulus[0], self.comp_modulus[2],
                    self.lat_dir, self.poisson[0], self.poisson[1]]
         return summary
-
-    def get_inputs(self):
-        ary = [self.specimen_id, self.test_date, self.repetition, self.lat_dir, self.area, self.tipping_point]
-        print(ary)

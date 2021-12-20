@@ -18,7 +18,7 @@ def make_dirs(parent, namelist):
 
 def calculate_deltas(summary_list):
 
-    headers_check = ['Repetition', 'Zero Offset [mm]', 'Compressive Modulus [MPa]', 'Poisson\'s Ratio']
+    headers_check = ['Repetition', 'Zero Offset [mm]', 'Compression Modulus [MPa]', 'Poisson Ratio']
     summary_list[0].append('delta_Offset [mm]')
     summary_list[0].append('delta_Modulus [MPa]')
     summary_list[0].append('delta_Poisson')
@@ -54,15 +54,15 @@ if __name__ == '__main__':
     specimen_info_excel_path_PC = 'C:\\Users\\Mazin\\Danmarks Tekniske Universitet\\s202962 - General\\3-E21\\' \
                                   'Spec_Elastic_Response_of_3D_Printed_Forming_Tools\\Experiments\\Specimen Measuring\\' \
                                   'Specimen Dimensions Summary.xlsx'
-    specimen_sizes = data.specimen_info(specimen_info_excel_path_LT)
+    specimen_sizes = data.specimen_info(specimen_info_excel_path_PC)
 
     var = int(input('Test batch (0) or single file (9): '))
     plt_var = input('Show plots (sh), save plots (sa), no plots (n)?')
     sum_var = input('Show summary (sh), save summary (sa), no summary (n)?')
-    summary = [['Specimen ID', 'Loading Direction', 'Area [mm^2]', 'Shell/Infill Ratio', 'Date of Testing',
+    summary = [['Specimen ID', 'Loading Direction', 'Area [mm^2]', 'Infill Fraction', 'Date of Testing',
                 'Batch', 'Repetition', 'Zero Offset [mm]',
-                'Compressive Modulus [MPa]', 'RSQ',
-                'Poisson Direction', 'Poisson\'s Ratio', 'RSQ']]
+                'Compression Modulus [MPa]', 'RSQ',
+                'Poisson Direction', 'Poisson Ratio', 'RSQ']]
     if var == 0:
         data_path = user_comms.ask_src_path(1)  # Ask user for folder path
 
@@ -77,13 +77,14 @@ if __name__ == '__main__':
                     summary.append(rep.get_rep_summary())
                     text = '$E_C = %.1f MPa$ \n $\\nu = %.3f$' \
                            % (rep.comp_modulus[0], rep.poisson[0])
+                    lines = [[rep.comp_modulus[0]/100, rep.comp_modulus[1]], [-rep.poisson[0], rep.poisson[2]*100]]
                     plotting.create_fig(rep.title,
                                         rep.get_strain_percent(axial=True),
                                         rep.stresses,
                                         retract_index=rep.tipping_point,
-                                        x2=rep.get_strain_percent(axial=False),
+                                        y2=rep.get_strain_percent(axial=False),
                                         text=text,
-                                        line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]])
+                                        lines=lines)
             if sum_var == 'sh':
                 calculate_deltas(summary)
                 for line in summary:
@@ -114,13 +115,14 @@ if __name__ == '__main__':
                     summary.append(rep.get_rep_summary())
                     text = '$E_C = %.1f MPa$ \n $\\nu = %.3f$' \
                            % (rep.comp_modulus[0], rep.poisson[0])
+                    lines = [[rep.comp_modulus[0]/100, rep.comp_modulus[1]], [-rep.poisson[0], rep.poisson[2]*100]]
                     plotting.create_fig(rep.title,
                                         rep.get_strain_percent(axial=True),
                                         rep.stresses,
                                         retract_index=rep.tipping_point,
-                                        x2=rep.get_strain_percent(axial=False),
+                                        y2=rep.get_strain_percent(axial=False),
                                         text=text,
-                                        line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]],
+                                        lines=lines,
                                         save_dir=rep_save_dir)
             if sum_var == 'sh':
                 calculate_deltas(summary)
@@ -164,13 +166,14 @@ if __name__ == '__main__':
                 summary.append(rep.get_rep_summary())
                 text = '$E_C = %.1f~MPa$ \n $\\nu_{%s} = %.3f$' \
                        % (rep.comp_modulus[0], rep.lat_dir, rep.poisson[0])
+                lines = [[rep.comp_modulus[0]/100, rep.comp_modulus[1]], [-rep.poisson[0], rep.poisson[2]*100]]
                 plotting.create_fig(rep.title,
                                     rep.get_strain_percent(axial=True),
                                     rep.stresses,
                                     retract_index=rep.tipping_point,
-                                    x2=rep.get_strain_percent(axial=False),
+                                    y2=rep.get_strain_percent(axial=False),
                                     text=text,
-                                    line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]])
+                                    lines=lines)
 
             if sum_var == 'sh':
                 calculate_deltas(summary)
@@ -190,14 +193,15 @@ if __name__ == '__main__':
                 summary.append(rep.get_rep_summary())
                 text = '$E_C = %.1f MPa$ \n $\\nu = %.3f$' \
                        % (rep.comp_modulus[0], rep.poisson[0])
+                lines = [[rep.comp_modulus[0]/100, rep.comp_modulus[1]], [-rep.poisson[0], rep.poisson[2]*100]]
                 plotting.create_fig(rep.title,
                                     rep.get_strain_percent(axial=True),
                                     rep.stresses,
                                     retract_index=rep.tipping_point,
-                                    x2=rep.get_strain_percent(axial=False),
+                                    y2=rep.get_strain_percent(axial=False),
                                     text=text,
                                     save_dir=plt_save_dir,
-                                    line=[rep.comp_modulus[0]/100, rep.comp_modulus[1]])
+                                    lines=lines)
 
             if sum_var == 'sh':
                 calculate_deltas(summary)

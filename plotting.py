@@ -134,7 +134,7 @@ def plot_lat_disp(data_to_plot, save_dir, retract_index):
         plt.savefig(save_path)
 
 
-def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=None, line=None, text=None):
+def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=None, lines=None, text=None):
 
     font = {'family': 'Arial',
             'weight': 'normal',
@@ -203,7 +203,7 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
         ax3 = ax1.twinx()
 
         color = 'tab:green'
-        ax3.set_xlabel(y2[0], color=color, font=font)
+        ax3.set_ylabel(y2[0], color=color, font=font)
         if retract_index is not None:
             ax3.plot(x1[1:retract_index], y2[1:retract_index], color=color, linewidth=1)
             ax3.plot(x1[retract_index:], y2[retract_index:], '--', color=color, linewidth=1)
@@ -219,17 +219,31 @@ def create_fig(title, x1, y1, retract_index=None, save_dir=None, x2=None, y2=Non
         for tick in ax3.get_yticklabels():
             tick.set_fontproperties(font)
 
-    if line is not None:
-        slope = line[0]
-        intercept = line[1]
+    if lines is not None:
+        modulus_line = lines[0]
+        slope = modulus_line[0]
+        intercept = modulus_line[1]
 
-        y_line = [y1_info[0], y1_info[1]]
-        x_line = []
+        y_line_1 = [y1_info[0], y1_info[1]]
+        x_line_1 = []
 
-        for i in y_line:
-            x_line.append((i - intercept) / slope)
+        for i in y_line_1:
+            x_line_1.append((i - intercept) / slope)
 
-        ax1.plot(x_line, y_line, ':', color='b')
+        ax1.plot(x_line_1, y_line_1, ':', color='b')
+
+        if len(lines) == 2:
+            poisson_line = lines[1]
+            slope_2 = poisson_line[0]
+            intercept_2 = poisson_line[1]
+
+            x_line_2 = [x1_info[0], x1_info[1]]
+            y_line_2 = []
+
+            for i in x_line_2:
+                y_line_2.append(slope_2 * i + intercept_2)
+
+            ax3.plot(x_line_2, y_line_2, ':', color='black')
 
     # fig.legend(loc='upper left')
     fig.tight_layout()  # otherwise the right y-label is slightly clipped
