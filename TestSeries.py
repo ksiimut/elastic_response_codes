@@ -152,12 +152,15 @@ class TestSeries:
         if self.infill_spec:
             wall_thickness = 0.55
         else:
-            wall_thickness = int(self.specimen_id[1:3]) / 10
-            print(wall_thickness)
+            if int(self.specimen_id[1:3]) == 0:
+                wall_thickness = int(self.specimen_id[1:3]) / 10
+            else:
+                wall_thickness = int(self.specimen_id[1:3]) / 10 + 0.15
+            # print(wall_thickness)
         volume_total = this_spec[1] * this_spec[2] * this_spec[3]
-        volume_infill = (this_spec[1] - wall_thickness) * \
-                        (this_spec[2] - wall_thickness) * \
-                        (this_spec[3] - wall_thickness)
+        volume_infill = (this_spec[1] - 2 * wall_thickness) * \
+                        (this_spec[2] - 2 * wall_thickness) * \
+                        (this_spec[3] - 2 * wall_thickness)
         volume_shell = volume_total - volume_infill
         si_ratio = volume_shell / volume_infill
         print('\t\t%.1f / %.1f = %.5f' % (volume_shell, volume_infill, si_ratio))
@@ -380,8 +383,8 @@ class Repetition:
         self.lateral_strains = self.calculate_lateral_strain()
         self.stresses = self.calculate_stress()
 
-        MIN_STRAIN = 0.007
-        MAX_STRAIN = 0.012
+        MIN_STRAIN = 0.005
+        MAX_STRAIN = 0.010
 
         self.comp_modulus = self.calculate_modulus(MIN_STRAIN, MAX_STRAIN)  # [modulus, intercept, rsq]
         self.poisson = self.calculate_poisson(MIN_STRAIN, MAX_STRAIN)  # [poisson, rsq]

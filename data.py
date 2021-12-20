@@ -111,7 +111,7 @@ def average_data(data_list, average_of):  # Averages the datapoints of an input 
     return filtered
 
 
-def transpose_list(data, save_dir):  # data: [filename, [dataset1], [dataset2], ...]
+def transpose_list(data):  # data: [filename, [dataset1], [dataset2], ...]
 
     filename = data.pop(0)                          # Removes the filename from the list.
     transposed_list = list(map(list, zip(*data)))     # transposes the data
