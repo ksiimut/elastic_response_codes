@@ -6,7 +6,7 @@ import numpy as np
 import math
 
 
-def make_graph(data_to_plot, save_dir, retract_index):     # Data of one test
+def make_graph(data_to_plot, save_dir, retract_index):     # Data of one test  # Not used
     # [filename, [x_data_points], [y1_data_points], [y2_data_points(optional)]]
 
     filename = data_to_plot[0]
@@ -68,7 +68,7 @@ def make_graph(data_to_plot, save_dir, retract_index):     # Data of one test
         plt.savefig(save_path)
 
 
-def plot_lat_disp(data_to_plot, save_dir, retract_index):
+def plot_lat_disp(data_to_plot, save_dir, retract_index):  # Not used
 
     filename = data_to_plot[0]
 

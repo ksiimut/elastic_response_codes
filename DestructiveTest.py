@@ -2,6 +2,8 @@ import data
 import scipy
 from scipy import stats
 
+# Used for analyzing data from destructive tests with two columns of data: force and displacement.
+
 
 class DestructiveTest:
 
